@@ -1,28 +1,32 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+
+#include <QAction>
+#include <QComboBox>
+#include <QDesktopServices>
+#include <QDirIterator>
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QProcess>
-#include <QDirIterator>
-#include <QDesktopServices>
-#include <QUrl>
-#include <QRegularExpression>
-#include <QPushButton>
 #include <QHeaderView>
-#include <QSet>
 #include <QHBoxLayout>
-#include <QMessageBox>
 #include <QMenu>
+#include <QMessageBox>
+#include <QProcess>
+#include <QPushButton>
+#include <QRegularExpression>
+#include <QSet>
 #include <QSettings>
-#include <QAction>
 #include <QTextStream>
+#include <QUrl>
+
+// ===================== Constructor / Destructor =====================
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    ui->tableWidget->setColumnCount(11);
-    ui->tableWidget->setHorizontalHeaderLabels({"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Path", "Size", "Duration", "Language", "Actions"});
+    ui->tableWidget->setColumnCount(10);
+    ui->tableWidget->setHorizontalHeaderLabels({"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language", "Actions"});
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui->tableWidget->setSortingEnabled(true);
     ui->tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -53,6 +57,8 @@ MainWindow::~MainWindow()
 {
     delete ui;
 }
+
+// ===================== Video Processing =====================
 
 void MainWindow::processVideos(const QString &folderPath)
 {
@@ -86,16 +92,17 @@ void MainWindow::processVideos(const QString &folderPath)
         qualities.insert(quality);
 
         ui->tableWidget->insertRow(row);
-        ui->tableWidget->setItem(row, 0, new QTableWidgetItem(title));
+        QTableWidgetItem *titleItem = new QTableWidgetItem(title);
+        titleItem->setData(FilePathRole, filePath);
+        ui->tableWidget->setItem(row, 0, titleItem);
         ui->tableWidget->setItem(row, 1, new QTableWidgetItem(year));
         ui->tableWidget->setItem(row, 2, new QTableWidgetItem(decade));
         ui->tableWidget->setItem(row, 3, new QTableWidgetItem(resolution));
         ui->tableWidget->setItem(row, 4, new QTableWidgetItem(aspectRatio));
         ui->tableWidget->setItem(row, 5, new QTableWidgetItem(quality));
-        ui->tableWidget->setItem(row, 6, new QTableWidgetItem(filePath)); // Store path here
-        ui->tableWidget->setItem(row, 7, new QTableWidgetItem(fileSize));
-        ui->tableWidget->setItem(row, 8, new QTableWidgetItem(duration));
-        ui->tableWidget->setItem(row, 9, new QTableWidgetItem(audioLanguage));
+        ui->tableWidget->setItem(row, 6, new QTableWidgetItem(fileSize));
+        ui->tableWidget->setItem(row, 7, new QTableWidgetItem(duration));
+        ui->tableWidget->setItem(row, 8, new QTableWidgetItem(audioLanguage));
 
         // Open button
         QPushButton *openButton = new QPushButton("Open");
@@ -117,7 +124,7 @@ void MainWindow::processVideos(const QString &folderPath)
         layout->addWidget(imdbButton);
         layout->addWidget(paheButton);
         layout->setContentsMargins(0, 0, 0, 0);
-        ui->tableWidget->setCellWidget(row, 10, buttonsWidget);
+        ui->tableWidget->setCellWidget(row, 9, buttonsWidget);
 
         row++;
     }
@@ -172,24 +179,6 @@ QString MainWindow::getVideoQuality(const QString &filePath)
     return "Unknown";
 }
 
-QPair<QString, QString> MainWindow::parseFolderName(const QString &folderName)
-{
-    QRegularExpression re("(.+?) \\((\\d{4})\\)");
-    QRegularExpressionMatch match = re.match(folderName);
-    if (match.hasMatch())
-        return {match.captured(1).trimmed(), match.captured(2)};
-    return {folderName, "Unknown"};
-}
-
-QString MainWindow::getDecade(const QString &year)
-{
-    bool ok;
-    int y = year.toInt(&ok);
-    if (ok)
-        return QString::number(y - (y % 10)) + "s";
-    return "Unknown";
-}
-
 QString MainWindow::getFileSize(const QString &filePath)
 {
     QFileInfo info(filePath);
@@ -223,35 +212,25 @@ QString MainWindow::getAudioLanguage(const QString &filePath)
     return lang.isEmpty() ? "Unknown" : lang;
 }
 
-void MainWindow::showContextMenu(const QPoint &pos)
+QPair<QString, QString> MainWindow::parseFolderName(const QString &folderName)
 {
-    QModelIndex index = ui->tableWidget->indexAt(pos);
-    if (!index.isValid())
-        return;
-
-    QMenu menu(this);
-    QAction *openFolderAction = menu.addAction("Open Containing Folder");
-
-    connect(openFolderAction, &QAction::triggered, this, [this, index]()
-            {
-        QTableWidgetItem *pathItem = ui->tableWidget->item(index.row(), 6);
-        if (!pathItem) {
-            QMessageBox::warning(this, "Error", "No path information available.");
-            return;
-        }
-
-        QString filePath = pathItem->text();
-        QFileInfo fileInfo(filePath);
-        if (!fileInfo.exists()) {
-            QMessageBox::warning(this, "Error", "The file does not exist.");
-            return;
-        }
-
-        QDesktopServices::openUrl(QUrl::fromLocalFile(fileInfo.absolutePath())); });
-
-    menu.exec(ui->tableWidget->viewport()->mapToGlobal(pos));
+    QRegularExpression re("(.+?) \\((\\d{4})\\)");
+    QRegularExpressionMatch match = re.match(folderName);
+    if (match.hasMatch())
+        return {match.captured(1).trimmed(), match.captured(2)};
+    return {folderName, "Unknown"};
 }
 
+QString MainWindow::getDecade(const QString &year)
+{
+    bool ok;
+    int y = year.toInt(&ok);
+    if (ok)
+        return QString::number(y - (y % 10)) + "s";
+    return "Unknown";
+}
+
+// ===================== Filtering / Sorting =====================
 void MainWindow::filterTable()
 {
     QString selectedDecade = ui->comboBoxDecade->currentText();
@@ -272,19 +251,59 @@ void MainWindow::filterTable()
     }
 }
 
-void MainWindow::openImdbPage(const QString &title, const QString &year)
+void MainWindow::filterTableRows(const QString &text)
 {
-    QString name = title + " " + year;
-    QString url = "https://www.imdb.com/find/?q=" + QUrl::toPercentEncoding(name);
-    QDesktopServices::openUrl(QUrl(url));
+    QString searchText = text.trimmed().toLower();
+
+    for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
+    {
+        bool match = false;
+
+        for (int col = 0; col < ui->tableWidget->columnCount(); ++col)
+        {
+            QTableWidgetItem *item = ui->tableWidget->item(row, col);
+            if (item && item->text().toLower().contains(searchText))
+            {
+                match = true;
+                break;
+            }
+        }
+
+        ui->tableWidget->setRowHidden(row, !match);
+    }
 }
 
-void MainWindow::openPahePage(const QString &title, const QString &year)
+// ===================== Context Menu =====================
+
+void MainWindow::showContextMenu(const QPoint &pos)
 {
-    QString name = title + " " + year;
-    QString url = "https://pahe.ink/?s=" + QUrl::toPercentEncoding(name);
-    QDesktopServices::openUrl(QUrl(url));
+    QModelIndex index = ui->tableWidget->indexAt(pos);
+    if (!index.isValid())
+        return;
+
+    QMenu menu(this);
+    QAction *openFolderAction = menu.addAction("Open Containing Folder");
+
+    connect(openFolderAction, &QAction::triggered, this, [this, index]()
+            {
+        QString filePath = ui->tableWidget->item(index.row(), 0)->data(FilePathRole).toString();
+        if (filePath.isEmpty()) {
+            QMessageBox::warning(this, "Error", "No path information available.");
+            return;
+        }
+
+        QFileInfo fileInfo(filePath);
+        if (!fileInfo.exists()) {
+            QMessageBox::warning(this, "Error", "The file does not exist.");
+            return;
+        }
+
+        QDesktopServices::openUrl(QUrl::fromLocalFile(fileInfo.absolutePath())); });
+
+    menu.exec(ui->tableWidget->viewport()->mapToGlobal(pos));
 }
+
+// ===================== Utility / Helper Functions =====================
 
 void MainWindow::addComboBoxItemIfNotExist(QComboBox *comboBox, const QString &item)
 {
@@ -331,6 +350,24 @@ void MainWindow::addComboBoxItemsSorted(QComboBox *comboBox, const QSet<QString>
         comboBox->addItem(additionalItem);
 }
 
+// ===================== External Site Integration =====================
+
+void MainWindow::openImdbPage(const QString &title, const QString &year)
+{
+    QString name = title + " " + year;
+    QString url = "https://www.imdb.com/find/?q=" + QUrl::toPercentEncoding(name);
+    QDesktopServices::openUrl(QUrl(url));
+}
+
+void MainWindow::openPahePage(const QString &title, const QString &year)
+{
+    QString name = title + " " + year;
+    QString url = "https://pahe.ink/?s=" + QUrl::toPercentEncoding(name);
+    QDesktopServices::openUrl(QUrl(url));
+}
+
+// ===================== Export =====================
+
 void MainWindow::exportToExcel()
 {
     QString fileName = QFileDialog::getSaveFileName(this, "Save as Excel", "", "CSV Files (*.csv)");
@@ -375,26 +412,4 @@ void MainWindow::exportToExcel()
 
     file.close();
     QMessageBox::information(this, "Export", "Export completed successfully.");
-}
-
-void MainWindow::filterTableRows(const QString &text)
-{
-    QString searchText = text.trimmed().toLower();
-
-    for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
-    {
-        bool match = false;
-
-        for (int col = 0; col < ui->tableWidget->columnCount(); ++col)
-        {
-            QTableWidgetItem *item = ui->tableWidget->item(row, col);
-            if (item && item->text().toLower().contains(searchText))
-            {
-                match = true;
-                break;
-            }
-        }
-
-        ui->tableWidget->setRowHidden(row, !match);
-    }
 }

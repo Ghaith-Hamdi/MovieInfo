@@ -29,8 +29,8 @@ class Ui_MainWindow
 {
 public:
     QWidget *centralwidget;
+    QVBoxLayout *verticalLayout_3;
     QTableWidget *tableWidget;
-    QWidget *widget;
     QVBoxLayout *verticalLayout_2;
     QLineEdit *searchLineEdit;
     QVBoxLayout *verticalLayout;
@@ -46,20 +46,20 @@ public:
     {
         if (MainWindow->objectName().isEmpty())
             MainWindow->setObjectName("MainWindow");
-        MainWindow->resize(2676, 959);
+        MainWindow->resize(1496, 959);
         centralwidget = new QWidget(MainWindow);
         centralwidget->setObjectName("centralwidget");
+        verticalLayout_3 = new QVBoxLayout(centralwidget);
+        verticalLayout_3->setObjectName("verticalLayout_3");
         tableWidget = new QTableWidget(centralwidget);
         tableWidget->setObjectName("tableWidget");
-        tableWidget->setGeometry(QRect(10, 10, 2271, 911));
         tableWidget->setSizeAdjustPolicy(QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents);
-        widget = new QWidget(centralwidget);
-        widget->setObjectName("widget");
-        widget->setGeometry(QRect(2380, 260, 213, 90));
-        verticalLayout_2 = new QVBoxLayout(widget);
+
+        verticalLayout_3->addWidget(tableWidget);
+
+        verticalLayout_2 = new QVBoxLayout();
         verticalLayout_2->setObjectName("verticalLayout_2");
-        verticalLayout_2->setContentsMargins(0, 0, 0, 0);
-        searchLineEdit = new QLineEdit(widget);
+        searchLineEdit = new QLineEdit(centralwidget);
         searchLineEdit->setObjectName("searchLineEdit");
 
         verticalLayout_2->addWidget(searchLineEdit);
@@ -68,17 +68,17 @@ public:
         verticalLayout->setObjectName("verticalLayout");
         horizontalLayout = new QHBoxLayout();
         horizontalLayout->setObjectName("horizontalLayout");
-        comboBoxQuality = new QComboBox(widget);
+        comboBoxQuality = new QComboBox(centralwidget);
         comboBoxQuality->setObjectName("comboBoxQuality");
 
         horizontalLayout->addWidget(comboBoxQuality);
 
-        comboBoxDecade = new QComboBox(widget);
+        comboBoxDecade = new QComboBox(centralwidget);
         comboBoxDecade->setObjectName("comboBoxDecade");
 
         horizontalLayout->addWidget(comboBoxDecade);
 
-        comboBoxAspectRatio = new QComboBox(widget);
+        comboBoxAspectRatio = new QComboBox(centralwidget);
         comboBoxAspectRatio->setObjectName("comboBoxAspectRatio");
 
         horizontalLayout->addWidget(comboBoxAspectRatio);
@@ -86,7 +86,7 @@ public:
 
         verticalLayout->addLayout(horizontalLayout);
 
-        exportButton = new QPushButton(widget);
+        exportButton = new QPushButton(centralwidget);
         exportButton->setObjectName("exportButton");
 
         verticalLayout->addWidget(exportButton);
@@ -94,10 +94,13 @@ public:
 
         verticalLayout_2->addLayout(verticalLayout);
 
+
+        verticalLayout_3->addLayout(verticalLayout_2);
+
         MainWindow->setCentralWidget(centralwidget);
         menubar = new QMenuBar(MainWindow);
         menubar->setObjectName("menubar");
-        menubar->setGeometry(QRect(0, 0, 2676, 21));
+        menubar->setGeometry(QRect(0, 0, 1496, 21));
         MainWindow->setMenuBar(menubar);
         statusbar = new QStatusBar(MainWindow);
         statusbar->setObjectName("statusbar");
@@ -111,7 +114,7 @@ public:
     void retranslateUi(QMainWindow *MainWindow)
     {
         MainWindow->setWindowTitle(QCoreApplication::translate("MainWindow", "MainWindow", nullptr));
-        exportButton->setText(QCoreApplication::translate("MainWindow", "PushButton", nullptr));
+        exportButton->setText(QCoreApplication::translate("MainWindow", "Export", nullptr));
     } // retranslateUi
 
 };

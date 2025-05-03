@@ -27,12 +27,18 @@ private slots:
     void exportToExcel();
 
 private:
+    enum CustomRoles
+    {
+        FilePathRole = Qt::UserRole + 1
+    };
+
     void addComboBoxItemIfNotExist(QComboBox *comboBox, const QString &item);
     void addComboBoxItemsSorted(QComboBox *comboBox, const QSet<QString> &items, const QString &additionalItem = "");
     QString getVideoResolution(const QString &filePath);
     QString getAspectRatio(const QString &resolution);
     QString getVideoQuality(const QString &resolution);
     QString getDecade(const QString &year);
+    QString filepath;
     QPair<QString, QString> parseFolderName(const QString &folderName);
 
     Ui::MainWindow *ui;
