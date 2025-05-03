@@ -27,35 +27,42 @@
      <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents</enum>
     </property>
    </widget>
-   <widget class="QWidget" name="layoutWidget">
+   <widget class="QWidget" name="">
     <property name="geometry">
      <rect>
       <x>2380</x>
-      <y>300</y>
-      <width>251</width>
-      <height>61</height>
+      <y>260</y>
+      <width>213</width>
+      <height>90</height>
      </rect>
     </property>
-    <layout class="QVBoxLayout" name="verticalLayout">
+    <layout class="QVBoxLayout" name="verticalLayout_2">
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <item>
-        <widget class="QComboBox" name="comboBoxQuality"/>
-       </item>
-       <item>
-        <widget class="QComboBox" name="comboBoxDecade"/>
-       </item>
-       <item>
-        <widget class="QComboBox" name="comboBoxAspectRatio"/>
-       </item>
-      </layout>
+      <widget class="QLineEdit" name="searchLineEdit"/>
      </item>
      <item>
-      <widget class="QPushButton" name="exportButton">
-       <property name="text">
-        <string>PushButton</string>
-       </property>
-      </widget>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QComboBox" name="comboBoxQuality"/>
+         </item>
+         <item>
+          <widget class="QComboBox" name="comboBoxDecade"/>
+         </item>
+         <item>
+          <widget class="QComboBox" name="comboBoxAspectRatio"/>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QPushButton" name="exportButton">
+         <property name="text">
+          <string>PushButton</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
     </layout>
    </widget>

@@ -6,8 +6,9 @@
 #include <QTableWidget>
 #include <QPushButton>
 
-namespace Ui {
-class MainWindow;
+namespace Ui
+{
+    class MainWindow;
 }
 
 class MainWindow : public QMainWindow
@@ -24,12 +25,13 @@ private slots:
     void openPahePage(const QString &title, const QString &year);
     void filterTable();
     void exportToExcel();
+
 private:
     void addComboBoxItemIfNotExist(QComboBox *comboBox, const QString &item);
     void addComboBoxItemsSorted(QComboBox *comboBox, const QSet<QString> &items, const QString &additionalItem = "");
     QString getVideoResolution(const QString &filePath);
     QString getAspectRatio(const QString &resolution);
-    QString getVideoQuality(const QString &resolution);  // New function for quality
+    QString getVideoQuality(const QString &resolution);
     QString getDecade(const QString &year);
     QPair<QString, QString> parseFolderName(const QString &folderName);
 
@@ -38,6 +40,7 @@ private:
     QString getVideoDuration(const QString &filePath);
     QString getAudioLanguage(const QString &filePath);
     QString getFileSize(const QString &filePath);
+    void filterTableRows(const QString &text);
 };
 
 #endif // MAINWINDOW_H

@@ -46,6 +46,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->comboBoxAspectRatio, &QComboBox::currentTextChanged, this, &MainWindow::filterTable);
     connect(ui->comboBoxQuality, &QComboBox::currentTextChanged, this, &MainWindow::filterTable);
     connect(ui->exportButton, &QPushButton::clicked, this, &MainWindow::exportToExcel);
+    connect(ui->searchLineEdit, &QLineEdit::textChanged, this, &MainWindow::filterTableRows);
 }
 
 MainWindow::~MainWindow()
@@ -98,20 +99,17 @@ void MainWindow::processVideos(const QString &folderPath)
 
         // Open button
         QPushButton *openButton = new QPushButton("Open");
-        connect(openButton, &QPushButton::clicked, this, [filePath]() {
-            QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
-        });
+        connect(openButton, &QPushButton::clicked, this, [filePath]()
+                { QDesktopServices::openUrl(QUrl::fromLocalFile(filePath)); });
 
         // IMDb and Pahe buttons
         QPushButton *imdbButton = new QPushButton("IMDb");
-        connect(imdbButton, &QPushButton::clicked, this, [this, title, year]() {
-            openImdbPage(title, year);
-        });
+        connect(imdbButton, &QPushButton::clicked, this, [this, title, year]()
+                { openImdbPage(title, year); });
 
         QPushButton *paheButton = new QPushButton("Pahe");
-        connect(paheButton, &QPushButton::clicked, this, [this, title, year]() {
-            openPahePage(title, year);
-        });
+        connect(paheButton, &QPushButton::clicked, this, [this, title, year]()
+                { openPahePage(title, year); });
 
         QWidget *buttonsWidget = new QWidget();
         QHBoxLayout *layout = new QHBoxLayout(buttonsWidget);
@@ -145,15 +143,18 @@ QString MainWindow::getVideoResolution(const QString &filePath)
 
 QString MainWindow::getAspectRatio(const QString &resolution)
 {
-    if (resolution == "Unknown") return "Unknown";
+    if (resolution == "Unknown")
+        return "Unknown";
 
     QStringList parts = resolution.split("x");
-    if (parts.size() != 2) return "Unknown";
+    if (parts.size() != 2)
+        return "Unknown";
 
     bool ok1, ok2;
     int width = parts[0].toInt(&ok1);
     int height = parts[1].toInt(&ok2);
-    if (!ok1 || !ok2 || height == 0) return "Unknown";
+    if (!ok1 || !ok2 || height == 0)
+        return "Unknown";
 
     double ratio = static_cast<double>(width) / height;
     return QString::number(ratio, 'f', 2);
@@ -162,9 +163,12 @@ QString MainWindow::getAspectRatio(const QString &resolution)
 QString MainWindow::getVideoQuality(const QString &filePath)
 {
     QString fileName = QFileInfo(filePath).fileName().toLower();
-    if (fileName.contains("2160p") || fileName.contains("4k")) return "4K";
-    if (fileName.contains("1080p")) return "1080p";
-    if (fileName.contains("720p")) return "720p";
+    if (fileName.contains("2160p") || fileName.contains("4k"))
+        return "4K";
+    if (fileName.contains("1080p"))
+        return "1080p";
+    if (fileName.contains("720p"))
+        return "720p";
     return "Unknown";
 }
 
@@ -172,7 +176,8 @@ QPair<QString, QString> MainWindow::parseFolderName(const QString &folderName)
 {
     QRegularExpression re("(.+?) \\((\\d{4})\\)");
     QRegularExpressionMatch match = re.match(folderName);
-    if (match.hasMatch()) return {match.captured(1).trimmed(), match.captured(2)};
+    if (match.hasMatch())
+        return {match.captured(1).trimmed(), match.captured(2)};
     return {folderName, "Unknown"};
 }
 
@@ -180,7 +185,8 @@ QString MainWindow::getDecade(const QString &year)
 {
     bool ok;
     int y = year.toInt(&ok);
-    if (ok) return QString::number(y - (y % 10)) + "s";
+    if (ok)
+        return QString::number(y - (y % 10)) + "s";
     return "Unknown";
 }
 
@@ -199,7 +205,8 @@ QString MainWindow::getVideoDuration(const QString &filePath)
     ffprobe.waitForFinished();
     bool ok;
     int seconds = ffprobe.readAllStandardOutput().trimmed().toDouble(&ok);
-    if (!ok) return "Unknown";
+    if (!ok)
+        return "Unknown";
     int h = seconds / 3600;
     int m = (seconds % 3600) / 60;
     int s = seconds % 60;
@@ -219,12 +226,14 @@ QString MainWindow::getAudioLanguage(const QString &filePath)
 void MainWindow::showContextMenu(const QPoint &pos)
 {
     QModelIndex index = ui->tableWidget->indexAt(pos);
-    if (!index.isValid()) return;
+    if (!index.isValid())
+        return;
 
     QMenu menu(this);
     QAction *openFolderAction = menu.addAction("Open Containing Folder");
 
-    connect(openFolderAction, &QAction::triggered, this, [this, index]() {
+    connect(openFolderAction, &QAction::triggered, this, [this, index]()
+            {
         QTableWidgetItem *pathItem = ui->tableWidget->item(index.row(), 6);
         if (!pathItem) {
             QMessageBox::warning(this, "Error", "No path information available.");
@@ -238,8 +247,7 @@ void MainWindow::showContextMenu(const QPoint &pos)
             return;
         }
 
-        QDesktopServices::openUrl(QUrl::fromLocalFile(fileInfo.absolutePath()));
-    });
+        QDesktopServices::openUrl(QUrl::fromLocalFile(fileInfo.absolutePath())); });
 
     menu.exec(ui->tableWidget->viewport()->mapToGlobal(pos));
 }
@@ -280,7 +288,8 @@ void MainWindow::openPahePage(const QString &title, const QString &year)
 
 void MainWindow::addComboBoxItemIfNotExist(QComboBox *comboBox, const QString &item)
 {
-    if (comboBox->findText(item) == -1) comboBox->addItem(item);
+    if (comboBox->findText(item) == -1)
+        comboBox->addItem(item);
 }
 
 void MainWindow::addComboBoxItemsSorted(QComboBox *comboBox, const QSet<QString> &items, const QString &additionalItem)
@@ -290,13 +299,15 @@ void MainWindow::addComboBoxItemsSorted(QComboBox *comboBox, const QSet<QString>
 
     for (const QString &item : items)
     {
-        if (item == "Unknown") continue;
+        if (item == "Unknown")
+            continue;
 
         bool ok;
         double value = item.toDouble(&ok);
         if (ok)
         {
-            if (value >= 2.2 && value <= 2.5) continue; // Skip UltraWide
+            if (value >= 2.2 && value <= 2.5)
+                continue; // Skip UltraWide
             numericRatios.append(value);
         }
         else
@@ -323,10 +334,12 @@ void MainWindow::addComboBoxItemsSorted(QComboBox *comboBox, const QSet<QString>
 void MainWindow::exportToExcel()
 {
     QString fileName = QFileDialog::getSaveFileName(this, "Save as Excel", "", "CSV Files (*.csv)");
-    if (fileName.isEmpty()) return;
+    if (fileName.isEmpty())
+        return;
 
     QFile file(fileName);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+    {
         QMessageBox::warning(this, "Error", "Could not open file for writing");
         return;
     }
@@ -345,12 +358,14 @@ void MainWindow::exportToExcel()
     // Write rows
     for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
     {
-        if (ui->tableWidget->isRowHidden(row)) continue;
+        if (ui->tableWidget->isRowHidden(row))
+            continue;
 
         QStringList rowContents;
         for (int col = 0; col < ui->tableWidget->columnCount(); ++col)
         {
-            if (col == 10) continue; // Skip Actions column
+            if (col == 10)
+                continue; // Skip Actions column
 
             QTableWidgetItem *item = ui->tableWidget->item(row, col);
             rowContents << (item ? "\"" + item->text().replace("\"", "\"\"") + "\"" : "");
@@ -360,4 +375,26 @@ void MainWindow::exportToExcel()
 
     file.close();
     QMessageBox::information(this, "Export", "Export completed successfully.");
+}
+
+void MainWindow::filterTableRows(const QString &text)
+{
+    QString searchText = text.trimmed().toLower();
+
+    for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
+    {
+        bool match = false;
+
+        for (int col = 0; col < ui->tableWidget->columnCount(); ++col)
+        {
+            QTableWidgetItem *item = ui->tableWidget->item(row, col);
+            if (item && item->text().toLower().contains(searchText))
+            {
+                match = true;
+                break;
+            }
+        }
+
+        ui->tableWidget->setRowHidden(row, !match);
+    }
 }
