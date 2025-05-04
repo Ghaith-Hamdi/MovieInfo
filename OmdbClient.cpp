@@ -62,7 +62,7 @@ void OmdbClient::onMovieFetched(QNetworkReply *reply)
     QString country = jsonObject.value("Country").toString();
 
     QStringList movieData = {
-        title, year, rating, votes, runtime, director,
+        title, rating, votes, director, year, runtime,
         actors, awards, language, country};
 
     emit movieFetched(movieData);

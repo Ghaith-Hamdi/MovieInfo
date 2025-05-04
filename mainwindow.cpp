@@ -25,8 +25,8 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    ui->tableWidget->setColumnCount(12);
-    ui->tableWidget->setHorizontalHeaderLabels({"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language", "Actions", "Rating", "Votes"});
+    ui->tableWidget->setColumnCount(13);
+    ui->tableWidget->setHorizontalHeaderLabels({"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language", "Actions", "Rating", "Votes", "Director"});
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui->tableWidget->setSortingEnabled(true);
     ui->tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -464,6 +464,15 @@ void MainWindow::onFetchClicked()
     }
 }
 
+QString sanitizeForWindowsFolder(const QString& name) {
+    // Remove characters not allowed in Windows folder names: \ / : * ? " < > |
+    static QRegularExpression forbidden(R"([\\/:*?"<>|])");
+    QString sanitized = name;
+    return sanitized.remove(forbidden);
+}
+
+
+
 void MainWindow::onMovieFetched(const QList<QString> &movieData)
 {
     if (movieData.size() < 2)
@@ -471,15 +480,18 @@ void MainWindow::onMovieFetched(const QList<QString> &movieData)
 
     QString title = movieData[0];
     QString rating = movieData[1];
-    QString votes = movieData.size() > 2 ? movieData[2] : "";
-
+    QString NbVotes = movieData[2];
+    QString Direct = movieData[3];
+    
     for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
     {
         QString rowTitle = ui->tableWidget->item(row, 0)->text();
-        if (rowTitle == title)
+
+        if (sanitizeForWindowsFolder(rowTitle) == sanitizeForWindowsFolder(title))
         {
             ui->tableWidget->setItem(row, 10, new QTableWidgetItem(rating));
-            ui->tableWidget->setItem(row, 11, new QTableWidgetItem(votes));
+            ui->tableWidget->setItem(row, 11, new QTableWidgetItem(NbVotes));
+            ui->tableWidget->setItem(row, 12, new QTableWidgetItem(Direct));
             break;
         }
     }
