@@ -17,7 +17,7 @@ OmdbClient::~OmdbClient()
 
 void OmdbClient::fetchMovie(const QString &movieName, int year)
 {
-    // Check if movie exists in database first
+    // Check local database first
     if (movieDb && movieDb->movieExists(movieName))
     {
         Movie movie = movieDb->getMovie(movieName);
@@ -29,21 +29,21 @@ void OmdbClient::fetchMovie(const QString &movieName, int year)
         }
     }
 
-    // If not in database, proceed with API call
-    QString encodedMovieName = QUrl::toPercentEncoding(movieName);
-    QString url = QString("http://www.omdbapi.com/?t=%1&apikey=%2").arg(encodedMovieName).arg(apiKey);
+    // If not in DB, fetch from OMDb API
+    QString url = QString("http://www.omdbapi.com/?t=%1&apikey=%2")
+                      .arg(QUrl::toPercentEncoding(movieName))
+                      .arg(apiKey);
 
-    if (year != 0)
+    if (year > 0)
     {
         url += QString("&y=%1").arg(year);
     }
 
     qDebug() << "Sending request to OMDb API:" << url;
 
-    QNetworkRequest request{QUrl(url)};
-    QNetworkReply *reply = manager->get(request);
+    QNetworkReply *reply = manager->get(QNetworkRequest(QUrl(url)));
 
-    connect(reply, &QNetworkReply::finished, this, [=]()
+    connect(reply, &QNetworkReply::finished, this, [this, reply]()
             { onMovieFetched(reply); });
 }
 
@@ -57,9 +57,8 @@ void OmdbClient::onMovieFetched(QNetworkReply *reply)
         return;
     }
 
-    QByteArray responseData = reply->readAll();
-    QJsonDocument doc = QJsonDocument::fromJson(responseData);
-    QJsonObject jsonObject = doc.object();
+    const QJsonDocument doc = QJsonDocument::fromJson(reply->readAll());
+    const QJsonObject jsonObject = doc.object();
 
     Movie movie;
     movie.title = jsonObject.value("Title").toString();
@@ -82,22 +81,21 @@ void OmdbClient::onMovieFetched(QNetworkReply *reply)
     movie.imdbID = jsonObject.value("imdbID").toString();
     movie.boxOffice = jsonObject.value("BoxOffice").toString();
 
-    // Extract ratings array
-    QJsonArray ratingsArray = jsonObject.value("Ratings").toArray();
+    // Parse ratings
+    const QJsonArray ratingsArray = jsonObject.value("Ratings").toArray();
     QStringList ratingsList;
-    for (const QJsonValue &value : ratingsArray)
+    for (const auto &value : ratingsArray)
     {
-        QJsonObject ratingObj = value.toObject();
-        QString source = ratingObj.value("Source").toString();
-        QString ratingValue = ratingObj.value("Value").toString();
-        ratingsList.append(source + ": " + ratingValue);
+        const QJsonObject ratingObj = value.toObject();
+        ratingsList.append(ratingObj.value("Source").toString() + ": " + ratingObj.value("Value").toString());
     }
     movie.allRatings = ratingsList.join("; ");
 
-    qDebug() << "Received movie:" << movie.title << "| Year:" << movie.year
-             << "| IMDb Rating:" << movie.imdbRating << "| Votes:" << movie.imdbVotes;
+    qDebug() << "Received movie:" << movie.title
+             << "| Year:" << movie.year
+             << "| IMDb Rating:" << movie.imdbRating
+             << "| Votes:" << movie.imdbVotes;
 
-    // Save to database - pass the Movie object directly
     if (movieDb && movieDb->saveMovie(movie))
     {
         qDebug() << "Movie data saved to database";

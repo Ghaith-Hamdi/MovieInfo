@@ -50,16 +50,17 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    // Initialize database first
+    // Initialize database
     movieDb = new MovieDB(this);
     if (!movieDb->init())
     {
         QMessageBox::warning(this, "Database Error", "Failed to initialize movie database");
     }
 
-    // Initialize OmdbClient with your API key and movieDb instance
+    // Initialize OMDb client
     omdbClient = new OmdbClient("5af6b86e", movieDb, this);
 
+    // Setup table
     ui->tableWidget->setColumnCount(15);
     ui->tableWidget->setHorizontalHeaderLabels({"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language", "Actions", "Rating", "Votes", "Director", "Awards", "Box Office"});
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
@@ -68,10 +69,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(ui->tableWidget, &QTableWidget::customContextMenuRequested, this, &MainWindow::showContextMenu);
 
-    addComboBoxItemIfNotExist(ui->comboBoxDecade, "All");
-    addComboBoxItemIfNotExist(ui->comboBoxAspectRatio, "All");
-    addComboBoxItemIfNotExist(ui->comboBoxQuality, "All");
+    // Initialize combo boxes with "All"
+    for (auto combo : {ui->comboBoxDecade, ui->comboBoxAspectRatio, ui->comboBoxQuality})
+        addComboBoxItemIfNotExist(combo, "All");
 
+    // Load last folder
     QSettings settings("YourCompany", "VideoBrowserApp");
     QString lastFolder = settings.value("lastFolder").toString();
     QString folderPath = QFileDialog::getExistingDirectory(this, "Select Folder", lastFolder);
@@ -81,23 +83,26 @@ MainWindow::MainWindow(QWidget *parent)
         processVideos(folderPath);
     }
 
-    connect(ui->comboBoxDecade, &QComboBox::currentTextChanged, this, &MainWindow::filterTable);
-    connect(ui->comboBoxAspectRatio, &QComboBox::currentTextChanged, this, &MainWindow::filterTable);
-    connect(ui->comboBoxQuality, &QComboBox::currentTextChanged, this, &MainWindow::filterTable);
+    // Connect combo boxes to filterTable
+    auto connectCombo = [this](QComboBox *box)
+    {
+        connect(box, &QComboBox::currentTextChanged, this, &MainWindow::filterTable);
+    };
+    connectCombo(ui->comboBoxDecade);
+    connectCombo(ui->comboBoxAspectRatio);
+    connectCombo(ui->comboBoxQuality);
+
+    // Other signal connections
     connect(ui->exportButton, &QPushButton::clicked, this, &MainWindow::exportToExcel);
     connect(ui->searchLineEdit, &QLineEdit::textChanged, this, &MainWindow::filterTableRows);
-
-    // Connect the movieFetched signal to our slot
     connect(omdbClient, &OmdbClient::movieFetched, this, &MainWindow::onMovieFetched);
-
-    // Connect fetch button
     connect(ui->fetchButton, &QPushButton::clicked, this, &MainWindow::onFetchClicked);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
-    // Qt parent-child relationship will handle deleting movieDb and omdbClient
+    // movieDb and omdbClient will be deleted automatically by Qt parent system
 }
 
 // ===================== Video Processing =====================
@@ -107,9 +112,7 @@ void MainWindow::processVideos(const QString &folderPath)
     QStringList videoExtensions = {".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv"};
     int row = 0;
 
-    QSet<QString> decades;
-    QSet<QString> aspectRatios;
-    QSet<QString> qualities;
+    QSet<QString> decades, aspectRatios, qualities;
 
     QDirIterator it(folderPath, QDirIterator::Subdirectories);
     while (it.hasNext())
@@ -146,16 +149,10 @@ void MainWindow::processVideos(const QString &folderPath)
         ui->tableWidget->setItem(row, 7, new QTableWidgetItem(duration));
         ui->tableWidget->setItem(row, 8, new QTableWidgetItem(audioLanguage));
 
-        // Add Rating and Votes columns
-        ui->tableWidget->setItem(row, 9, new QTableWidgetItem(""));  // Rating (initially empty)
-        ui->tableWidget->setItem(row, 10, new QTableWidgetItem("")); // Votes (initially empty)
-
-        // Open button
         QPushButton *openButton = new QPushButton("Open");
         connect(openButton, &QPushButton::clicked, this, [filePath]()
                 { QDesktopServices::openUrl(QUrl::fromLocalFile(filePath)); });
 
-        // IMDb and Pahe buttons
         QPushButton *imdbButton = new QPushButton("IMDb");
         connect(imdbButton, &QPushButton::clicked, this, [this, title, year]()
                 { openImdbPage(title, year); });
@@ -183,14 +180,19 @@ void MainWindow::processVideos(const QString &folderPath)
     ui->tableWidget->resizeRowsToContents();
 }
 
-QString MainWindow::getVideoResolution(const QString &filePath)
+// ===================== Utility Functions =====================
+
+QString MainWindow::runFfprobe(const QStringList &args)
 {
     QProcess ffprobe;
-    QStringList args = {"-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", filePath};
-
     ffprobe.start("ffprobe", args);
     ffprobe.waitForFinished();
-    QString output = ffprobe.readAllStandardOutput().trimmed();
+    return ffprobe.readAllStandardOutput().trimmed();
+}
+
+QString MainWindow::getVideoResolution(const QString &filePath)
+{
+    QString output = runFfprobe({"-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", filePath});
     return output.isEmpty() ? "Unknown" : output.replace(",", "x");
 }
 
@@ -234,12 +236,8 @@ QString MainWindow::getFileSize(const QString &filePath)
 
 QString MainWindow::getVideoDuration(const QString &filePath)
 {
-    QProcess ffprobe;
-    QStringList args = {"-v", "error", "-select_streams", "v:0", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filePath};
-    ffprobe.start("ffprobe", args);
-    ffprobe.waitForFinished();
     bool ok;
-    int seconds = ffprobe.readAllStandardOutput().trimmed().toDouble(&ok);
+    int seconds = runFfprobe({"-v", "error", "-select_streams", "v:0", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filePath}).toDouble(&ok);
     if (!ok)
         return "Unknown";
     int h = seconds / 3600;
@@ -250,11 +248,7 @@ QString MainWindow::getVideoDuration(const QString &filePath)
 
 QString MainWindow::getAudioLanguage(const QString &filePath)
 {
-    QProcess ffprobe;
-    QStringList args = {"-v", "error", "-select_streams", "a:0", "-show_entries", "stream_tags=language", "-of", "default=noprint_wrappers=1:nokey=1", filePath};
-    ffprobe.start("ffprobe", args);
-    ffprobe.waitForFinished();
-    QString lang = ffprobe.readAllStandardOutput().trimmed();
+    QString lang = runFfprobe({"-v", "error", "-select_streams", "a:0", "-show_entries", "stream_tags=language", "-of", "default=noprint_wrappers=1:nokey=1", filePath});
     return lang.isEmpty() ? "Unknown" : lang;
 }
 
@@ -271,9 +265,7 @@ QString MainWindow::getDecade(const QString &year)
 {
     bool ok;
     int y = year.toInt(&ok);
-    if (ok)
-        return QString::number(y - (y % 10)) + "s";
-    return "Unknown";
+    return ok ? QString::number(y - (y % 10)) + "s" : "Unknown";
 }
 
 // ===================== Filtering / Sorting =====================
@@ -331,112 +323,102 @@ void MainWindow::showContextMenu(const QPoint &pos)
     QAction *openFolderAction = menu.addAction("Open Containing Folder");
     QAction *renameFolderAction = menu.addAction("Rename Folder");
 
-    connect(openFolderAction, &QAction::triggered, this, [this, index]()
-            {
-        QString filePath = ui->tableWidget->item(index.row(), 0)->data(FilePathRole).toString();
-        if (filePath.isEmpty()) {
+    auto getFileInfo = [this, index]() -> std::optional<QFileInfo>
+    {
+        auto *item = ui->tableWidget->item(index.row(), 0);
+        if (!item)
+            return std::nullopt;
+
+        QString filePath = item->data(FilePathRole).toString();
+        if (filePath.isEmpty())
+        {
             QMessageBox::warning(this, "Error", "No path information available.");
-            return;
+            return std::nullopt;
         }
 
         QFileInfo fileInfo(filePath);
-        if (!fileInfo.exists()) {
+        if (!fileInfo.exists())
+        {
             QMessageBox::warning(this, "Error", "The file does not exist.");
-            return;
+            return std::nullopt;
         }
 
-        QDesktopServices::openUrl(QUrl::fromLocalFile(fileInfo.absolutePath())); });
+        return fileInfo;
+    };
 
-    connect(renameFolderAction, &QAction::triggered, this, [this, index]()
+    connect(openFolderAction, &QAction::triggered, this, [=]()
             {
-        QString filePath = ui->tableWidget->item(index.row(), 0)->data(FilePathRole).toString();
-        if (filePath.isEmpty()) {
-            QMessageBox::warning(this, "Error", "No path information available.");
-            return;
-        }
+        auto fileInfoOpt = getFileInfo();
+        if (!fileInfoOpt) return;
 
-        QFileInfo fileInfo(filePath);
+        QDesktopServices::openUrl(QUrl::fromLocalFile(fileInfoOpt->absolutePath())); });
+
+    connect(renameFolderAction, &QAction::triggered, this, [=]()
+            {
+        auto fileInfoOpt = getFileInfo();
+        if (!fileInfoOpt) return;
+
+        const QFileInfo &fileInfo = *fileInfoOpt;
         QDir parentDir = fileInfo.dir();
         QString currentPath = parentDir.absolutePath();
         QString currentName = parentDir.dirName();
         QString title = ui->tableWidget->item(index.row(), 0)->text();
         QString year = ui->tableWidget->item(index.row(), 1)->text();
-        
-        // Create suggested new name
         QString suggestedName = QString("%1 (%2)").arg(title, year);
-        //suggestedName = sanitizeForWindowsFolder(suggestedName);
-        
+
         bool ok;
-        QString newName = QInputDialog::getText(this, "Rename Folder",
-                                              "Enter new folder name:",
-                                              QLineEdit::Normal,
-                                              suggestedName, &ok);
-        if (ok && !newName.isEmpty())
-        {
-            // Sanitize and validate the new name
-            newName = sanitizeForWindowsFolder(newName);
-            // Remove any newlines and trim whitespace
-            newName = newName.replace('\n', ' ').trimmed();
-            
-            if (newName.isEmpty()) {
-                QMessageBox::warning(this, "Error", "Invalid folder name after sanitization");
-                return;
-            }
+        QString newName = QInputDialog::getText(this, "Rename Folder", "Enter new folder name:",
+                                                QLineEdit::Normal, suggestedName, &ok);
 
-            // Get parent of current directory
-            QDir baseDir(currentPath);
-            baseDir.cdUp();
-            QString newPath = QDir::cleanPath(baseDir.absoluteFilePath(newName));
+        if (!ok || newName.trimmed().isEmpty())
+            return;
 
-            // Ensure paths are properly formatted
-            QString currentPathNative = QDir::toNativeSeparators(currentPath);
-            QString newPathNative = QDir::toNativeSeparators(newPath);
+        newName = sanitizeForWindowsFolder(newName).replace('\n', ' ').trimmed();
+        if (newName.isEmpty()) {
+            QMessageBox::warning(this, "Error", "Invalid folder name after sanitization.");
+            return;
+        }
 
-            qDebug() << "Current path:" << currentPathNative;
-            qDebug() << "New path:" << newPathNative;
+        QDir baseDir = parentDir;
+        baseDir.cdUp();
+        QString newPath = QDir::cleanPath(baseDir.absoluteFilePath(newName));
 
-            // Check if target exists
-            if (QDir(newPathNative).exists()) {
-                QMessageBox::warning(this, "Error", "Target folder already exists");
-                return;
-            }
+        if (QDir(newPath).exists()) {
+            QMessageBox::warning(this, "Error", "Target folder already exists.");
+            return;
+        }
 
-            // Try to rename using native paths
-            if (QDir().rename(currentPathNative, newPathNative)) {
-                QString newFilePath = newPathNative + QDir::separator() + fileInfo.fileName();
-                ui->tableWidget->item(index.row(), 0)->setData(FilePathRole, newFilePath);
-                QMessageBox::information(this, "Success", "Folder renamed successfully.");
-                return;
-            }
+        QString newPathNative = QDir::toNativeSeparators(newPath);
+        QString currentPathNative = QDir::toNativeSeparators(currentPath);
 
-            // If first attempt failed, try with cmd move command
+        qDebug() << "Current path:" << currentPathNative;
+        qDebug() << "New path:" << newPathNative;
+
+        bool renamed = QDir().rename(currentPathNative, newPathNative);
+        if (!renamed) {
             QProcess elevate;
-            QStringList args;
-            // Properly quote the paths and ensure no newlines
-            args << "/c" << "move" << QString("\"%1\"").arg(currentPathNative)
-                 << QString("\"%1\"").arg(newPathNative);
-
-            qDebug() << "Executing command:" << "cmd.exe" << args.join(' ');
-            
+            QStringList args = {"/c", "move",
+                                QString("\"%1\"").arg(currentPathNative),
+                                QString("\"%1\"").arg(newPathNative)};
             elevate.start("cmd.exe", args);
             elevate.waitForFinished();
 
-            // Check if the move was successful
-            if (QDir(newPathNative).exists() && !QDir(currentPathNative).exists()) {
-                QString newFilePath = newPathNative + QDir::separator() + fileInfo.fileName();
-                ui->tableWidget->item(index.row(), 0)->setData(FilePathRole, newFilePath);
-                QMessageBox::information(this, "Success", "Folder renamed successfully.");
-            } else {
-                auto error = GetLastError();
-                QString errorMsg = QString("Failed to rename folder.\nError code: %1 (0x%2)\n%3\n\n"
-                                         "From: %4\nTo: %5")
-                                    .arg(error)
-                                    .arg(error, 8, 16, QChar('0'))
-                                    .arg(QString::fromLocal8Bit(strerror(error)))
-                                    .arg(currentPathNative)
-                                    .arg(newPathNative);
-                QMessageBox::warning(this, "Error", errorMsg);
-            }
+            renamed = QDir(newPathNative).exists() && !QDir(currentPathNative).exists();
+        }
+
+        if (renamed) {
+            QString newFilePath = newPathNative + QDir::separator() + fileInfo.fileName();
+            ui->tableWidget->item(index.row(), 0)->setData(FilePathRole, newFilePath);
+            QMessageBox::information(this, "Success", "Folder renamed successfully.");
+        } else {
+            auto error = GetLastError();
+            QString errorMsg = QString("Failed to rename folder.\nError code: %1 (0x%2)\n%3\n\nFrom: %4\nTo: %5")
+                                   .arg(error)
+                                   .arg(error, 8, 16, QChar('0'))
+                                   .arg(QString::fromLocal8Bit(strerror(error)))
+                                   .arg(currentPathNative)
+                                   .arg(newPathNative);
+            QMessageBox::warning(this, "Error", errorMsg);
         } });
 
     menu.exec(ui->tableWidget->viewport()->mapToGlobal(pos));
@@ -563,10 +545,10 @@ void MainWindow::onFetchClicked()
 
     for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
     {
-        QTableWidgetItem *item = ui->tableWidget->item(row, 0); // Column 0 = title
+        QTableWidgetItem *item = ui->tableWidget->item(row, 0);
         if (item)
         {
-            QString title = item->text().trimmed();
+            const QString title = item->text().trimmed();
             if (!title.isEmpty())
             {
                 qDebug() << "Found title in row" << row << ":" << title;
@@ -575,49 +557,45 @@ void MainWindow::onFetchClicked()
         }
     }
 
-    if (!titleList.isEmpty())
-    {
-        qDebug() << "Fetching movie data for" << titleList.size() << "titles.";
-        for (const QString &title : titleList)
-        {
-            qDebug() << "Requesting movie:" << title;
-            omdbClient->fetchMovie(title);
-        }
-    }
-    else
+    if (titleList.isEmpty())
     {
         qDebug() << "No titles found in table.";
+        return;
+    }
+
+    qDebug() << "Fetching movie data for" << titleList.size() << "titles.";
+    for (const auto &title : titleList)
+    {
+        qDebug() << "Requesting movie:" << title;
+        omdbClient->fetchMovie(title);
     }
 }
 
 QString MainWindow::sanitizeForWindowsFolder(const QString &name)
 {
-    // Remove characters not allowed in Windows folder names: \ / : * ? " < > | , .
-    static QRegularExpression forbidden(R"([\\/:*?"<>|,.])");
-    QString sanitized = name;
-    return sanitized.remove(forbidden);
+    static const QRegularExpression forbidden(R"([\\/:*?"<>|,.])");
+    return QString(name).remove(forbidden);
 }
 
 void MainWindow::onMovieFetched(const Movie &movie)
 {
-    QString title = movie.title;
-    QString rating = movie.imdbRating;
-    QString votes = movie.imdbVotes;
-    QString director = movie.director;
-    QString awards = movie.awards;
-    QString boxOffice = movie.boxOffice;
+    const QString sanitizedTitle = sanitizeForWindowsFolder(movie.title);
 
     for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
     {
-        QString rowTitle = ui->tableWidget->item(row, 0)->text();
+        QTableWidgetItem *item = ui->tableWidget->item(row, 0);
+        if (!item)
+            continue;
 
-        if (sanitizeForWindowsFolder(rowTitle) == sanitizeForWindowsFolder(title))
+        const QString rowTitle = sanitizeForWindowsFolder(item->text());
+
+        if (rowTitle == sanitizedTitle)
         {
-            ui->tableWidget->setItem(row, 10, new QTableWidgetItem(rating));
-            ui->tableWidget->setItem(row, 11, new NumericTableWidgetItem(votes));
-            ui->tableWidget->setItem(row, 12, new QTableWidgetItem(director));
-            ui->tableWidget->setItem(row, 13, new QTableWidgetItem(awards));
-            ui->tableWidget->setItem(row, 14, new QTableWidgetItem(boxOffice));
+            ui->tableWidget->setItem(row, 10, new QTableWidgetItem(movie.imdbRating));
+            ui->tableWidget->setItem(row, 11, new NumericTableWidgetItem(movie.imdbVotes));
+            ui->tableWidget->setItem(row, 12, new QTableWidgetItem(movie.director));
+            ui->tableWidget->setItem(row, 13, new QTableWidgetItem(movie.awards));
+            ui->tableWidget->setItem(row, 14, new QTableWidgetItem(movie.boxOffice));
             break;
         }
     }

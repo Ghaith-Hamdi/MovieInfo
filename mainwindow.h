@@ -5,7 +5,7 @@
 #include <QComboBox>
 #include <QTableWidget>
 #include <QPushButton>
-#include <OmdbClient.h>
+#include "OmdbClient.h"
 #include "movie.h"
 
 namespace Ui
@@ -22,40 +22,57 @@ public:
     ~MainWindow();
 
 private slots:
+    // Core functionality
     void processVideos(const QString &folderPath);
-    void openImdbPage(const QString &title, const QString &year);
-    void openPahePage(const QString &title, const QString &year);
-    void filterTable();
-    void exportToExcel();
     void onFetchClicked();
     void onMovieFetched(const Movie &movie);
 
+    // Filtering / Search / Export
+    void filterTable();
+    void filterTableRows(const QString &text);
+    void exportToExcel();
+
+    // External navigation
+    void openImdbPage(const QString &title, const QString &year);
+    void openPahePage(const QString &title, const QString &year);
+
+    // UI interaction
+    void showContextMenu(const QPoint &pos);
+
 private:
+    // UI and app state
+    Ui::MainWindow *ui;
+    QTableWidget *movieTable;
+    int currentRow = 0;
+
+    // Data
+    OmdbClient *omdbClient;
+    MovieDB *movieDb;
+
+    // Constants
     enum CustomRoles
     {
         FilePathRole = Qt::UserRole + 1
     };
 
+    // Helpers: ComboBoxes
     void addComboBoxItemIfNotExist(QComboBox *comboBox, const QString &item);
     void addComboBoxItemsSorted(QComboBox *comboBox, const QSet<QString> &items, const QString &additionalItem = "");
+
+    // Helpers: Metadata
     QString getVideoResolution(const QString &filePath);
     QString getAspectRatio(const QString &resolution);
-    QString getVideoQuality(const QString &resolution);
+    QString getVideoQuality(const QString &filePath);
     QString getDecade(const QString &year);
-    QString filepath;
-    QPair<QString, QString> parseFolderName(const QString &folderName);
-
-    Ui::MainWindow *ui;
-    OmdbClient *omdbClient;
-    MovieDB *movieDb; // Add this line
-    void showContextMenu(const QPoint &pos);
+    QString getFileSize(const QString &filePath);
     QString getVideoDuration(const QString &filePath);
     QString getAudioLanguage(const QString &filePath);
-    QString getFileSize(const QString &filePath);
-    void filterTableRows(const QString &text);
-    QTableWidget *movieTable;
-    int currentRow;
+    QPair<QString, QString> parseFolderName(const QString &folderName);
+    QString runFfprobe(const QStringList &args);
+
+    // Helpers: Utility
     QString sanitizeForWindowsFolder(const QString &name);
+    QString filepath;
 };
 
 #endif // MAINWINDOW_H
