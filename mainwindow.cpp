@@ -61,8 +61,9 @@ MainWindow::MainWindow(QWidget *parent)
     omdbClient = new OmdbClient("5af6b86e", movieDb, this);
 
     // Setup table
-    ui->tableWidget->setColumnCount(15);
-    ui->tableWidget->setHorizontalHeaderLabels({"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language", "Actions", "Rating", "Votes", "Director", "Awards", "Box Office"});
+    ui->tableWidget->setColumnCount(22);
+    ui->tableWidget->setHorizontalHeaderLabels({"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language",
+                                                "Actions","Rated", "Rating", "Votes", "Director", "Actors", "Writers", "Awards", "Language", "Country", "Box Office", "Plot", "Genre"});
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui->tableWidget->setSortingEnabled(true);
     ui->tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -591,11 +592,18 @@ void MainWindow::onMovieFetched(const Movie &movie)
 
         if (rowTitle == sanitizedTitle)
         {
-            ui->tableWidget->setItem(row, 10, new QTableWidgetItem(movie.imdbRating));
-            ui->tableWidget->setItem(row, 11, new NumericTableWidgetItem(movie.imdbVotes));
-            ui->tableWidget->setItem(row, 12, new QTableWidgetItem(movie.director));
-            ui->tableWidget->setItem(row, 13, new QTableWidgetItem(movie.awards));
-            ui->tableWidget->setItem(row, 14, new QTableWidgetItem(movie.boxOffice));
+            ui->tableWidget->setItem(row, 10, new QTableWidgetItem(movie.rated));
+            ui->tableWidget->setItem(row, 11, new QTableWidgetItem(movie.imdbRating));
+            ui->tableWidget->setItem(row, 12, new NumericTableWidgetItem(movie.imdbVotes));
+            ui->tableWidget->setItem(row, 13, new QTableWidgetItem(movie.director));
+            ui->tableWidget->setItem(row, 14, new QTableWidgetItem(movie.actors));
+            ui->tableWidget->setItem(row, 15, new QTableWidgetItem(movie.writer));
+            ui->tableWidget->setItem(row, 16, new QTableWidgetItem(movie.awards));
+            ui->tableWidget->setItem(row, 17, new QTableWidgetItem(movie.language));
+            ui->tableWidget->setItem(row, 18, new QTableWidgetItem(movie.country));
+            ui->tableWidget->setItem(row, 19, new QTableWidgetItem(movie.boxOffice));
+            ui->tableWidget->setItem(row, 20, new QTableWidgetItem(movie.plot));
+            ui->tableWidget->setItem(row, 21, new QTableWidgetItem(movie.genre));
             break;
         }
     }

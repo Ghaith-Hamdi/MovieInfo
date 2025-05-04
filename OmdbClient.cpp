@@ -64,22 +64,23 @@ void OmdbClient::onMovieFetched(QNetworkReply *reply)
     movie.title = jsonObject.value("Title").toString();
     movie.year = jsonObject.value("Year").toString();
     movie.rated = jsonObject.value("Rated").toString();
-    movie.released = jsonObject.value("Released").toString();
-    movie.runtime = jsonObject.value("Runtime").toString();
-    movie.genre = jsonObject.value("Genre").toString();
-    movie.director = jsonObject.value("Director").toString();
-    movie.writer = jsonObject.value("Writer").toString();
-    movie.actors = jsonObject.value("Actors").toString();
-    movie.plot = jsonObject.value("Plot").toString();
-    movie.language = jsonObject.value("Language").toString();
-    movie.country = jsonObject.value("Country").toString();
-    movie.awards = jsonObject.value("Awards").toString();
-    movie.poster = jsonObject.value("Poster").toString();
-    movie.metascore = jsonObject.value("Metascore").toString();
     movie.imdbRating = jsonObject.value("imdbRating").toString();
     movie.imdbVotes = jsonObject.value("imdbVotes").toString();
-    movie.imdbID = jsonObject.value("imdbID").toString();
+    movie.runtime = jsonObject.value("Runtime").toString();
+    movie.director = jsonObject.value("Director").toString();
+    movie.actors = jsonObject.value("Actors").toString();
+    movie.writer = jsonObject.value("Writer").toString();
+    movie.awards = jsonObject.value("Awards").toString();
+    movie.language = jsonObject.value("Language").toString();
+    movie.country = jsonObject.value("Country").toString();
     movie.boxOffice = jsonObject.value("BoxOffice").toString();
+    movie.plot = jsonObject.value("Plot").toString();
+    movie.genre = jsonObject.value("Genre").toString();
+
+    movie.released = jsonObject.value("Released").toString();
+    movie.poster = jsonObject.value("Poster").toString();
+    movie.metascore = jsonObject.value("Metascore").toString();
+    movie.imdbID = jsonObject.value("imdbID").toString();
 
     // Parse ratings
     const QJsonArray ratingsArray = jsonObject.value("Ratings").toArray();

@@ -24,8 +24,10 @@ private:
     QSqlDatabase db;
 
     const QStringList movieFields = {
-        "title", "rating", "votes", "director", "year",
-        "runtime", "actors", "awards", "language", "country", "boxoffice"};
+        "title", "year", "rating", "votes",
+        "runtime", "director", "actors", "writer",
+        "awards", "language", "country", "boxoffice",
+        "plot", "genre"};
     QMap<QString, QString> movieToMap(const Movie &movie);
 };
 

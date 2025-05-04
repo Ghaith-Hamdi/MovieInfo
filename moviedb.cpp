@@ -92,16 +92,20 @@ Movie MovieDB::getMovie(const QString &title)
     if (query.exec() && query.next())
     {
         movie.title = query.value("title").toString();
+        movie.year = query.value("year").toString();
+        movie.rated = query.value("rated").toString();
         movie.imdbRating = query.value("rating").toString();
         movie.imdbVotes = query.value("votes").toString();
-        movie.director = query.value("director").toString();
-        movie.year = query.value("year").toString();
         movie.runtime = query.value("runtime").toString();
+        movie.director = query.value("director").toString();
         movie.actors = query.value("actors").toString();
+        movie.writer = query.value("writer").toString();
         movie.awards = query.value("awards").toString();
         movie.language = query.value("language").toString();
         movie.country = query.value("country").toString();
         movie.boxOffice = query.value("boxoffice").toString();
+        movie.plot = query.value("plot").toString();
+        movie.genre = query.value("genre").toString();
     }
 
     return movie;
@@ -134,14 +138,18 @@ QMap<QString, QString> MovieDB::movieToMap(const Movie &movie)
 {
     return {
         {"title", movie.title},
-        {"rating", movie.imdbRating},
-        {"votes", movie.imdbVotes},
-        {"director", movie.director},
         {"year", movie.year},
+        {"rating", movie.imdbRating},
+        {"rated", movie.rated},
+        {"votes", movie.imdbVotes},
         {"runtime", movie.runtime},
+        {"director", movie.director},
         {"actors", movie.actors},
+        {"writer", movie.writer},
         {"awards", movie.awards},
         {"language", movie.language},
         {"country", movie.country},
-        {"boxoffice", movie.boxOffice}};
+        {"boxoffice", movie.boxOffice},
+        {"plot", movie.plot},
+        {"genre", movie.genre}};
 }
