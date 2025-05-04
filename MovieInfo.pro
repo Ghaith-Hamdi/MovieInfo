@@ -1,14 +1,16 @@
-QT += core gui widgets network concurrent
+QT += core gui widgets network concurrent sql
 
 CONFIG += c++17
 
 SOURCES += \
     OmdbClient.cpp \
     main.cpp \
+    moviedb.cpp \
     mainwindow.cpp
 
 HEADERS += \
     OmdbClient.h \
+    moviedb.h \
     mainwindow.h
 
 FORMS += \

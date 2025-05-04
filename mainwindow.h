@@ -59,12 +59,13 @@ private:
     QPair<QString, QString> parseFolderName(const QString &folderName);
 
     Ui::MainWindow *ui;
+    OmdbClient *omdbClient;
+    MovieDB *movieDb; // Add this line
     void showContextMenu(const QPoint &pos);
     QString getVideoDuration(const QString &filePath);
     QString getAudioLanguage(const QString &filePath);
     QString getFileSize(const QString &filePath);
     void filterTableRows(const QString &text);
-    OmdbClient *omdbClient;
     QTableWidget *movieTable;
     int currentRow;
 };

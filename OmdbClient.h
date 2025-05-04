@@ -11,6 +11,7 @@
 #include <QTableWidget>
 #include <QThreadPool>
 #include <QtConcurrent>
+#include <moviedb.h>
 
 class OmdbClient : public QObject
 {
@@ -32,6 +33,7 @@ private slots:
 private:
     QString apiKey;
     QNetworkAccessManager *manager;
+    MovieDB movieDb;
 };
 
 #endif // OMDBCLIENT_H

@@ -25,6 +25,17 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+    // Initialize database first
+    movieDb = new MovieDB(this);
+    if (!movieDb->init())
+    {
+        QMessageBox::warning(this, "Database Error", "Failed to initialize movie database");
+    }
+
+    // Initialize OmdbClient with your API key
+    omdbClient = new OmdbClient("5af6b86e", this);
+
     ui->tableWidget->setColumnCount(13);
     ui->tableWidget->setHorizontalHeaderLabels({"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language", "Actions", "Rating", "Votes", "Director"});
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
@@ -52,9 +63,6 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->exportButton, &QPushButton::clicked, this, &MainWindow::exportToExcel);
     connect(ui->searchLineEdit, &QLineEdit::textChanged, this, &MainWindow::filterTableRows);
 
-    // Initialize OmdbClient with your API key
-    omdbClient = new OmdbClient("5af6b86e", this);
-
     // Connect the movieFetched signal to our slot
     connect(omdbClient, &OmdbClient::movieFetched, this, &MainWindow::onMovieFetched);
 
@@ -65,6 +73,7 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
+    // Qt parent-child relationship will handle deleting movieDb and omdbClient
 }
 
 // ===================== Video Processing =====================
@@ -464,14 +473,13 @@ void MainWindow::onFetchClicked()
     }
 }
 
-QString sanitizeForWindowsFolder(const QString& name) {
+QString sanitizeForWindowsFolder(const QString &name)
+{
     // Remove characters not allowed in Windows folder names: \ / : * ? " < > |
     static QRegularExpression forbidden(R"([\\/:*?"<>|])");
     QString sanitized = name;
     return sanitized.remove(forbidden);
 }
-
-
 
 void MainWindow::onMovieFetched(const QList<QString> &movieData)
 {
@@ -482,7 +490,7 @@ void MainWindow::onMovieFetched(const QList<QString> &movieData)
     QString rating = movieData[1];
     QString NbVotes = movieData[2];
     QString Direct = movieData[3];
-    
+
     for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
     {
         QString rowTitle = ui->tableWidget->item(row, 0)->text();

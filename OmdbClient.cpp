@@ -6,8 +6,12 @@
 #include <QMessageBox>
 
 OmdbClient::OmdbClient(const QString &apiKey, QObject *parent)
-    : QObject(parent), apiKey(apiKey), manager(new QNetworkAccessManager(this))
+    : QObject(parent), apiKey(apiKey), manager(new QNetworkAccessManager(this)), movieDb(this)
 {
+    if (!movieDb.init())
+    {
+        qDebug() << "Failed to initialize movie database";
+    }
 }
 
 OmdbClient::~OmdbClient()
@@ -64,6 +68,16 @@ void OmdbClient::onMovieFetched(QNetworkReply *reply)
     QStringList movieData = {
         title, rating, votes, director, year, runtime,
         actors, awards, language, country};
+
+    // Save to database
+    if (movieDb.saveMovie(movieData))
+    {
+        qDebug() << "Movie data saved to database";
+    }
+    else
+    {
+        qDebug() << "Failed to save movie data to database";
+    }
 
     emit movieFetched(movieData);
     reply->deleteLater();
