@@ -81,6 +81,14 @@ private:
     QMap<int, QString> columnIndexToName;
     QMap<int, bool> columnVisibility;
     QAction *columnVisibilityAction;
+
+    void setupColumnReorderingMenu();
+    void saveColumnOrderSettings();
+    void loadColumnOrderSettings();
+    void reorderColumn(int column, int newPosition);
+    QMap<int, int> columnOriginalToCurrentMap; // Maps original column index to current position
+    QMap<int, int> columnCurrentToOriginalMap; // Maps current position to original column index
+    void updateHeaderLabels();
 };
 
 #endif // MAINWINDOW_H

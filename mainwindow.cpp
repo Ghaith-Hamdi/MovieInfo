@@ -80,6 +80,10 @@ MainWindow::MainWindow(QWidget *parent)
     loadColumnVisibilitySettings();
     setupColumnVisibilityMenu();
 
+    // Initialize column ordering features
+    loadColumnOrderSettings();
+    setupColumnReorderingMenu();
+
     connect(ui->tableWidget, &QTableWidget::customContextMenuRequested, this, &MainWindow::showContextMenu);
 
     // Initialize combo boxes with "All"
@@ -517,11 +521,11 @@ void MainWindow::exportToExcel()
 
     QTextStream out(&file);
 
-    // Write headers
+    // Write headers for visible columns only
     QStringList headers;
     for (int col = 0; col < ui->tableWidget->columnCount(); ++col)
     {
-        if (col != 10) // Skip Actions column
+        if (!ui->tableWidget->isColumnHidden(col) && col != 9) // Skip Actions column
             headers << ui->tableWidget->horizontalHeaderItem(col)->text();
     }
     out << headers.join(",") << "\n";
@@ -535,8 +539,8 @@ void MainWindow::exportToExcel()
         QStringList rowContents;
         for (int col = 0; col < ui->tableWidget->columnCount(); ++col)
         {
-            if (col == 10)
-                continue; // Skip Actions column
+            if (ui->tableWidget->isColumnHidden(col) || col == 9) // Skip Actions column and hidden columns
+                continue;
 
             QTableWidgetItem *item = ui->tableWidget->item(row, col);
             rowContents << (item ? "\"" + item->text().replace("\"", "\"\"") + "\"" : "");
@@ -738,4 +742,208 @@ void MainWindow::loadColumnVisibilitySettings()
 
     // Apply loaded settings
     updateColumnVisibility();
+}
+
+void MainWindow::setupColumnReorderingMenu()
+{
+    // Create a "Reorder Columns" button
+    QPushButton *reorderButton = new QPushButton("Reorder", this);
+    ui->toolBar->addWidget(reorderButton);
+
+    QMenu *reorderMenu = new QMenu(this);
+    reorderButton->setMenu(reorderMenu);
+
+    // Add "Reset Order" option
+    QAction *resetOrderAction = reorderMenu->addAction("Reset to Default Order");
+    connect(resetOrderAction, &QAction::triggered, this, [this]()
+            {
+        // Reset column order to default
+        QMap<int, int> defaultOrder;
+        for (int i = 0; i < ui->tableWidget->columnCount(); i++) {
+            defaultOrder[i] = i;
+        }
+        
+        // Update maps
+        columnOriginalToCurrentMap.clear();
+        columnCurrentToOriginalMap.clear();
+        for (int i = 0; i < ui->tableWidget->columnCount(); i++) {
+            columnOriginalToCurrentMap[i] = i;
+            columnCurrentToOriginalMap[i] = i;
+        }
+        
+        // Apply column order
+        for (int i = 0; i < ui->tableWidget->columnCount(); i++) {
+            ui->tableWidget->horizontalHeader()->moveSection(
+                ui->tableWidget->horizontalHeader()->visualIndex(i), i);
+        }
+        
+        // Save the default order
+        saveColumnOrderSettings();
+        
+        // Update header labels
+        updateHeaderLabels(); });
+
+    reorderMenu->addSeparator();
+
+    // Add move options for each column
+    for (int i = 0; i < ui->tableWidget->columnCount(); i++)
+    {
+        QString columnName = columnIndexToName.value(i, ui->tableWidget->horizontalHeaderItem(i)->text());
+
+        QMenu *columnMenu = reorderMenu->addMenu(columnName);
+
+        // Move Left action
+        QAction *moveLeftAction = columnMenu->addAction("Move Left");
+        connect(moveLeftAction, &QAction::triggered, this, [this, i]()
+                {
+            int visualIndex = ui->tableWidget->horizontalHeader()->visualIndex(i);
+            if (visualIndex > 0) {
+                reorderColumn(i, visualIndex - 1);
+                saveColumnOrderSettings();
+            } });
+
+        // Move Right action
+        QAction *moveRightAction = columnMenu->addAction("Move Right");
+        connect(moveRightAction, &QAction::triggered, this, [this, i]()
+                {
+            int visualIndex = ui->tableWidget->horizontalHeader()->visualIndex(i);
+            if (visualIndex < ui->tableWidget->columnCount() - 1) {
+                reorderColumn(i, visualIndex + 1);
+                saveColumnOrderSettings();
+            } });
+
+        // Move to Position action
+        QMenu *moveToMenu = columnMenu->addMenu("Move to Position");
+        for (int pos = 0; pos < ui->tableWidget->columnCount(); pos++)
+        {
+            QAction *moveToAction = moveToMenu->addAction(QString::number(pos + 1));
+            connect(moveToAction, &QAction::triggered, this, [this, i, pos]()
+                    {
+                reorderColumn(i, pos);
+                saveColumnOrderSettings(); });
+        }
+    }
+
+    // Make headers also reorderable by drag and drop
+    ui->tableWidget->horizontalHeader()->setSectionsMovable(true);
+
+    // Connect signal when user drags headers to reorder
+    connect(ui->tableWidget->horizontalHeader(), &QHeaderView::sectionMoved,
+            this, [this](int logicalIndex, int oldVisualIndex, int newVisualIndex)
+            {
+        Q_UNUSED(logicalIndex);
+        Q_UNUSED(oldVisualIndex);
+        
+        // Update our mappings
+        columnOriginalToCurrentMap.clear();
+        columnCurrentToOriginalMap.clear();
+        
+        for (int i = 0; i < ui->tableWidget->columnCount(); i++) {
+            int visualIndex = ui->tableWidget->horizontalHeader()->visualIndex(i);
+            columnOriginalToCurrentMap[i] = visualIndex;
+            columnCurrentToOriginalMap[visualIndex] = i;
+        }
+        
+        // Save new order
+        saveColumnOrderSettings(); });
+}
+
+void MainWindow::reorderColumn(int column, int newPosition)
+{
+    int currentVisualIndex = ui->tableWidget->horizontalHeader()->visualIndex(column);
+    ui->tableWidget->horizontalHeader()->moveSection(currentVisualIndex, newPosition);
+
+    // Update our mappings
+    columnOriginalToCurrentMap.clear();
+    columnCurrentToOriginalMap.clear();
+
+    for (int i = 0; i < ui->tableWidget->columnCount(); i++)
+    {
+        int visualIndex = ui->tableWidget->horizontalHeader()->visualIndex(i);
+        columnOriginalToCurrentMap[i] = visualIndex;
+        columnCurrentToOriginalMap[visualIndex] = i;
+    }
+}
+
+void MainWindow::saveColumnOrderSettings()
+{
+    QSettings settings("YourCompany", "VideoBrowserApp");
+    settings.beginGroup("ColumnOrder");
+
+    // Clear existing settings
+    settings.remove("");
+
+    // Save current order mapping
+    for (int i = 0; i < ui->tableWidget->columnCount(); i++)
+    {
+        int visualIndex = ui->tableWidget->horizontalHeader()->visualIndex(i);
+        settings.setValue(QString::number(i), visualIndex);
+    }
+
+    settings.endGroup();
+}
+
+void MainWindow::loadColumnOrderSettings()
+{
+    QSettings settings("YourCompany", "VideoBrowserApp");
+    settings.beginGroup("ColumnOrder");
+
+    // Check if settings exist
+    QStringList keys = settings.childKeys();
+
+    // Initialize with default mapping (identity map)
+    for (int i = 0; i < ui->tableWidget->columnCount(); i++)
+    {
+        columnOriginalToCurrentMap[i] = i;
+        columnCurrentToOriginalMap[i] = i;
+    }
+
+    if (!keys.isEmpty())
+    {
+        // Load custom column order
+        QMap<int, int> loadedOrder;
+
+        for (int i = 0; i < ui->tableWidget->columnCount(); i++)
+        {
+            int visualIndex = settings.value(QString::number(i), i).toInt();
+            loadedOrder[i] = visualIndex;
+        }
+
+        // Apply loaded order
+        // First sort by visual index to ensure correct order
+        QList<int> sortedColumns;
+        for (int i = 0; i < ui->tableWidget->columnCount(); i++)
+        {
+            sortedColumns.append(i);
+        }
+
+        std::sort(sortedColumns.begin(), sortedColumns.end(), [&loadedOrder](int a, int b)
+                  { return loadedOrder[a] < loadedOrder[b]; });
+
+        // Now apply the order
+        for (int i = 0; i < sortedColumns.size(); i++)
+        {
+            int logicalIndex = sortedColumns[i];
+            int currentVisualIndex = ui->tableWidget->horizontalHeader()->visualIndex(logicalIndex);
+            ui->tableWidget->horizontalHeader()->moveSection(currentVisualIndex, i);
+        }
+
+        // Update our mappings
+        for (int i = 0; i < ui->tableWidget->columnCount(); i++)
+        {
+            int visualIndex = ui->tableWidget->horizontalHeader()->visualIndex(i);
+            columnOriginalToCurrentMap[i] = visualIndex;
+            columnCurrentToOriginalMap[visualIndex] = i;
+        }
+    }
+
+    settings.endGroup();
+}
+
+void MainWindow::updateHeaderLabels()
+{
+    QStringList headerLabels = {"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language",
+                                "Actions", "Rated", "Rating", "Votes", "Director", "Actors", "Writers", "Awards", "Language", "Country", "Box Office", "Plot", "Genre"};
+
+    ui->tableWidget->setHorizontalHeaderLabels(headerLabels);
 }
