@@ -39,6 +39,7 @@ public:
     QComboBox *comboBoxDecade;
     QComboBox *comboBoxAspectRatio;
     QPushButton *exportButton;
+    QPushButton *fetchButton;
     QMenuBar *menubar;
     QStatusBar *statusbar;
 
@@ -97,6 +98,11 @@ public:
 
         verticalLayout_3->addLayout(verticalLayout_2);
 
+        fetchButton = new QPushButton(centralwidget);
+        fetchButton->setObjectName("fetchButton");
+
+        verticalLayout_3->addWidget(fetchButton);
+
         MainWindow->setCentralWidget(centralwidget);
         menubar = new QMenuBar(MainWindow);
         menubar->setObjectName("menubar");
@@ -115,6 +121,7 @@ public:
     {
         MainWindow->setWindowTitle(QCoreApplication::translate("MainWindow", "MainWindow", nullptr));
         exportButton->setText(QCoreApplication::translate("MainWindow", "Export", nullptr));
+        fetchButton->setText(QCoreApplication::translate("MainWindow", "Fetch", nullptr));
     } // retranslateUi
 
 };

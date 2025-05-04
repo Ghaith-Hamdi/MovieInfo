@@ -1,7 +1,7 @@
 build/
 debug/
 release/
+*.pro.user*
+*.qtc_clangd
 *.stash
 Makefile*
-.qtc_clangd
-*.pro.user*

@@ -5,11 +5,26 @@
 #include <QComboBox>
 #include <QTableWidget>
 #include <QPushButton>
+#include <OmdbClient.h>
 
 namespace Ui
 {
     class MainWindow;
 }
+
+struct Movie
+{
+    QString title;
+    QString year;
+    QString resolution;
+    QString aspectRatio;
+    QString quality;
+    QString fileSize;
+    QString duration;
+    QString audioLang;
+    QString rating;
+    QString votes;
+};
 
 class MainWindow : public QMainWindow
 {
@@ -25,6 +40,8 @@ private slots:
     void openPahePage(const QString &title, const QString &year);
     void filterTable();
     void exportToExcel();
+    void onFetchClicked();
+    void onMovieFetched(const QList<QString> &movieData);
 
 private:
     enum CustomRoles
@@ -47,6 +64,9 @@ private:
     QString getAudioLanguage(const QString &filePath);
     QString getFileSize(const QString &filePath);
     void filterTableRows(const QString &text);
+    OmdbClient *omdbClient;
+    QTableWidget *movieTable;
+    int currentRow;
 };
 
 #endif // MAINWINDOW_H

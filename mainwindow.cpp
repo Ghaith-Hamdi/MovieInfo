@@ -25,8 +25,8 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    ui->tableWidget->setColumnCount(10);
-    ui->tableWidget->setHorizontalHeaderLabels({"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language", "Actions"});
+    ui->tableWidget->setColumnCount(12);
+    ui->tableWidget->setHorizontalHeaderLabels({"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language", "Actions", "Rating", "Votes"});
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui->tableWidget->setSortingEnabled(true);
     ui->tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -51,6 +51,15 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->comboBoxQuality, &QComboBox::currentTextChanged, this, &MainWindow::filterTable);
     connect(ui->exportButton, &QPushButton::clicked, this, &MainWindow::exportToExcel);
     connect(ui->searchLineEdit, &QLineEdit::textChanged, this, &MainWindow::filterTableRows);
+
+    // Initialize OmdbClient with your API key
+    omdbClient = new OmdbClient("5af6b86e", this);
+
+    // Connect the movieFetched signal to our slot
+    connect(omdbClient, &OmdbClient::movieFetched, this, &MainWindow::onMovieFetched);
+
+    // Connect fetch button
+    connect(ui->fetchButton, &QPushButton::clicked, this, &MainWindow::onFetchClicked);
 }
 
 MainWindow::~MainWindow()
@@ -103,6 +112,10 @@ void MainWindow::processVideos(const QString &folderPath)
         ui->tableWidget->setItem(row, 6, new QTableWidgetItem(fileSize));
         ui->tableWidget->setItem(row, 7, new QTableWidgetItem(duration));
         ui->tableWidget->setItem(row, 8, new QTableWidgetItem(audioLanguage));
+
+        // Add Rating and Votes columns
+        ui->tableWidget->setItem(row, 9, new QTableWidgetItem(""));  // Rating (initially empty)
+        ui->tableWidget->setItem(row, 10, new QTableWidgetItem("")); // Votes (initially empty)
 
         // Open button
         QPushButton *openButton = new QPushButton("Open");
@@ -412,4 +425,62 @@ void MainWindow::exportToExcel()
 
     file.close();
     QMessageBox::information(this, "Export", "Export completed successfully.");
+}
+
+// ===================== OMDB API Integration =====================
+
+void MainWindow::onFetchClicked()
+{
+    QStringList titleList;
+
+    qDebug() << "Fetch button clicked. Reading titles from table.";
+
+    for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
+    {
+        QTableWidgetItem *item = ui->tableWidget->item(row, 0); // Column 0 = title
+        if (item)
+        {
+            QString title = item->text().trimmed();
+            if (!title.isEmpty())
+            {
+                qDebug() << "Found title in row" << row << ":" << title;
+                titleList.append(title);
+            }
+        }
+    }
+
+    if (!titleList.isEmpty())
+    {
+        qDebug() << "Fetching movie data for" << titleList.size() << "titles.";
+        for (const QString &title : titleList)
+        {
+            qDebug() << "Requesting movie:" << title;
+            omdbClient->fetchMovie(title);
+        }
+    }
+    else
+    {
+        qDebug() << "No titles found in table.";
+    }
+}
+
+void MainWindow::onMovieFetched(const QList<QString> &movieData)
+{
+    if (movieData.size() < 2)
+        return; // Basic validation
+
+    QString title = movieData[0];
+    QString rating = movieData[1];
+    QString votes = movieData.size() > 2 ? movieData[2] : "";
+
+    for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
+    {
+        QString rowTitle = ui->tableWidget->item(row, 0)->text();
+        if (rowTitle == title)
+        {
+            ui->tableWidget->setItem(row, 10, new QTableWidgetItem(rating));
+            ui->tableWidget->setItem(row, 11, new QTableWidgetItem(votes));
+            break;
+        }
+    }
 }
