@@ -18,6 +18,30 @@
 #include <QSettings>
 #include <QTextStream>
 #include <QUrl>
+#include <QInputDialog>
+#include <windows.h> // For GetLastError()
+#include <QThread>
+class NumericTableWidgetItem : public QTableWidgetItem
+{
+public:
+    NumericTableWidgetItem(const QString &text) : QTableWidgetItem(text) {}
+
+    bool operator<(const QTableWidgetItem &other) const override
+    {
+        // Remove commas and convert to double for comparison
+        QString thisText = text().remove(',');
+        QString otherText = other.text().remove(',');
+
+        bool ok1, ok2;
+        double thisNum = thisText.toDouble(&ok1);
+        double otherNum = otherText.toDouble(&ok2);
+
+        if (ok1 && ok2)
+            return thisNum < otherNum;
+
+        return QTableWidgetItem::operator<(other);
+    }
+};
 
 // ===================== Constructor / Destructor =====================
 
@@ -118,7 +142,7 @@ void MainWindow::processVideos(const QString &folderPath)
         ui->tableWidget->setItem(row, 3, new QTableWidgetItem(resolution));
         ui->tableWidget->setItem(row, 4, new QTableWidgetItem(aspectRatio));
         ui->tableWidget->setItem(row, 5, new QTableWidgetItem(quality));
-        ui->tableWidget->setItem(row, 6, new QTableWidgetItem(fileSize));
+        ui->tableWidget->setItem(row, 6, new NumericTableWidgetItem(fileSize));
         ui->tableWidget->setItem(row, 7, new QTableWidgetItem(duration));
         ui->tableWidget->setItem(row, 8, new QTableWidgetItem(audioLanguage));
 
@@ -305,6 +329,7 @@ void MainWindow::showContextMenu(const QPoint &pos)
 
     QMenu menu(this);
     QAction *openFolderAction = menu.addAction("Open Containing Folder");
+    QAction *renameFolderAction = menu.addAction("Rename Folder");
 
     connect(openFolderAction, &QAction::triggered, this, [this, index]()
             {
@@ -321,6 +346,98 @@ void MainWindow::showContextMenu(const QPoint &pos)
         }
 
         QDesktopServices::openUrl(QUrl::fromLocalFile(fileInfo.absolutePath())); });
+
+    connect(renameFolderAction, &QAction::triggered, this, [this, index]()
+            {
+        QString filePath = ui->tableWidget->item(index.row(), 0)->data(FilePathRole).toString();
+        if (filePath.isEmpty()) {
+            QMessageBox::warning(this, "Error", "No path information available.");
+            return;
+        }
+
+        QFileInfo fileInfo(filePath);
+        QDir parentDir = fileInfo.dir();
+        QString currentPath = parentDir.absolutePath();
+        QString currentName = parentDir.dirName();
+        QString title = ui->tableWidget->item(index.row(), 0)->text();
+        QString year = ui->tableWidget->item(index.row(), 1)->text();
+        
+        // Create suggested new name
+        QString suggestedName = QString("%1 (%2)").arg(title, year);
+        //suggestedName = sanitizeForWindowsFolder(suggestedName);
+        
+        bool ok;
+        QString newName = QInputDialog::getText(this, "Rename Folder",
+                                              "Enter new folder name:",
+                                              QLineEdit::Normal,
+                                              suggestedName, &ok);
+        if (ok && !newName.isEmpty())
+        {
+            // Sanitize and validate the new name
+            newName = sanitizeForWindowsFolder(newName);
+            // Remove any newlines and trim whitespace
+            newName = newName.replace('\n', ' ').trimmed();
+            
+            if (newName.isEmpty()) {
+                QMessageBox::warning(this, "Error", "Invalid folder name after sanitization");
+                return;
+            }
+
+            // Get parent of current directory
+            QDir baseDir(currentPath);
+            baseDir.cdUp();
+            QString newPath = QDir::cleanPath(baseDir.absoluteFilePath(newName));
+
+            // Ensure paths are properly formatted
+            QString currentPathNative = QDir::toNativeSeparators(currentPath);
+            QString newPathNative = QDir::toNativeSeparators(newPath);
+
+            qDebug() << "Current path:" << currentPathNative;
+            qDebug() << "New path:" << newPathNative;
+
+            // Check if target exists
+            if (QDir(newPathNative).exists()) {
+                QMessageBox::warning(this, "Error", "Target folder already exists");
+                return;
+            }
+
+            // Try to rename using native paths
+            if (QDir().rename(currentPathNative, newPathNative)) {
+                QString newFilePath = newPathNative + QDir::separator() + fileInfo.fileName();
+                ui->tableWidget->item(index.row(), 0)->setData(FilePathRole, newFilePath);
+                QMessageBox::information(this, "Success", "Folder renamed successfully.");
+                return;
+            }
+
+            // If first attempt failed, try with cmd move command
+            QProcess elevate;
+            QStringList args;
+            // Properly quote the paths and ensure no newlines
+            args << "/c" << "move" << QString("\"%1\"").arg(currentPathNative)
+                 << QString("\"%1\"").arg(newPathNative);
+
+            qDebug() << "Executing command:" << "cmd.exe" << args.join(' ');
+            
+            elevate.start("cmd.exe", args);
+            elevate.waitForFinished();
+
+            // Check if the move was successful
+            if (QDir(newPathNative).exists() && !QDir(currentPathNative).exists()) {
+                QString newFilePath = newPathNative + QDir::separator() + fileInfo.fileName();
+                ui->tableWidget->item(index.row(), 0)->setData(FilePathRole, newFilePath);
+                QMessageBox::information(this, "Success", "Folder renamed successfully.");
+            } else {
+                auto error = GetLastError();
+                QString errorMsg = QString("Failed to rename folder.\nError code: %1 (0x%2)\n%3\n\n"
+                                         "From: %4\nTo: %5")
+                                    .arg(error)
+                                    .arg(error, 8, 16, QChar('0'))
+                                    .arg(QString::fromLocal8Bit(strerror(error)))
+                                    .arg(currentPathNative)
+                                    .arg(newPathNative);
+                QMessageBox::warning(this, "Error", errorMsg);
+            }
+        } });
 
     menu.exec(ui->tableWidget->viewport()->mapToGlobal(pos));
 }
@@ -473,10 +590,10 @@ void MainWindow::onFetchClicked()
     }
 }
 
-QString sanitizeForWindowsFolder(const QString &name)
+QString MainWindow::sanitizeForWindowsFolder(const QString &name)
 {
-    // Remove characters not allowed in Windows folder names: \ / : * ? " < > |
-    static QRegularExpression forbidden(R"([\\/:*?"<>|])");
+    // Remove characters not allowed in Windows folder names: \ / : * ? " < > | , .
+    static QRegularExpression forbidden(R"([\\/:*?"<>|,.])");
     QString sanitized = name;
     return sanitized.remove(forbidden);
 }
@@ -498,7 +615,7 @@ void MainWindow::onMovieFetched(const QList<QString> &movieData)
         if (sanitizeForWindowsFolder(rowTitle) == sanitizeForWindowsFolder(title))
         {
             ui->tableWidget->setItem(row, 10, new QTableWidgetItem(rating));
-            ui->tableWidget->setItem(row, 11, new QTableWidgetItem(NbVotes));
+            ui->tableWidget->setItem(row, 11, new NumericTableWidgetItem(NbVotes)); // Use NumericTableWidgetItem
             ui->tableWidget->setItem(row, 12, new QTableWidgetItem(Direct));
             break;
         }

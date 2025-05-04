@@ -68,6 +68,7 @@ private:
     void filterTableRows(const QString &text);
     QTableWidget *movieTable;
     int currentRow;
+    QString sanitizeForWindowsFolder(const QString &name);
 };
 
 #endif // MAINWINDOW_H
