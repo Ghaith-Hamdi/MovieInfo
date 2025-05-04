@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QSqlDatabase>
 #include <QStringList>
+#include "movie.h"
 
 class MovieDB : public QObject
 {
@@ -11,11 +12,11 @@ class MovieDB : public QObject
 
 public:
     explicit MovieDB(QObject *parent = nullptr);
-    ~MovieDB() override; // Change to override instead of virtual
+    ~MovieDB() override;
 
     bool init();
-    bool saveMovie(const QStringList &movieData);
-    QStringList getMovie(const QString &title);
+    bool saveMovie(const Movie &movie);
+    Movie getMovie(const QString &title);
     bool movieExists(const QString &title);
 
 private:

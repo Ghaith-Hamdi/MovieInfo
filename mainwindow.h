@@ -6,25 +6,12 @@
 #include <QTableWidget>
 #include <QPushButton>
 #include <OmdbClient.h>
+#include "movie.h"
 
 namespace Ui
 {
     class MainWindow;
 }
-
-struct Movie
-{
-    QString title;
-    QString year;
-    QString resolution;
-    QString aspectRatio;
-    QString quality;
-    QString fileSize;
-    QString duration;
-    QString audioLang;
-    QString rating;
-    QString votes;
-};
 
 class MainWindow : public QMainWindow
 {
@@ -41,7 +28,7 @@ private slots:
     void filterTable();
     void exportToExcel();
     void onFetchClicked();
-    void onMovieFetched(const QList<QString> &movieData);
+    void onMovieFetched(const Movie &movie);
 
 private:
     enum CustomRoles

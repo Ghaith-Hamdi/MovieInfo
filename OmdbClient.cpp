@@ -20,11 +20,11 @@ void OmdbClient::fetchMovie(const QString &movieName, int year)
     // Check if movie exists in database first
     if (movieDb && movieDb->movieExists(movieName))
     {
-        QStringList movieData = movieDb->getMovie(movieName);
-        if (!movieData.isEmpty())
+        Movie movie = movieDb->getMovie(movieName);
+        if (!movie.title.isEmpty())
         {
             qDebug() << "Found movie in database:" << movieName;
-            emit movieFetched(movieData);
+            emit movieFetched(movie);
             return;
         }
     }
@@ -61,26 +61,44 @@ void OmdbClient::onMovieFetched(QNetworkReply *reply)
     QJsonDocument doc = QJsonDocument::fromJson(responseData);
     QJsonObject jsonObject = doc.object();
 
-    QString title = jsonObject.value("Title").toString();
-    QString year = jsonObject.value("Year").toString();
-    QString rating = jsonObject.value("imdbRating").toString();
-    QString votes = jsonObject.value("imdbVotes").toString();
+    Movie movie;
+    movie.title = jsonObject.value("Title").toString();
+    movie.year = jsonObject.value("Year").toString();
+    movie.rated = jsonObject.value("Rated").toString();
+    movie.released = jsonObject.value("Released").toString();
+    movie.runtime = jsonObject.value("Runtime").toString();
+    movie.genre = jsonObject.value("Genre").toString();
+    movie.director = jsonObject.value("Director").toString();
+    movie.writer = jsonObject.value("Writer").toString();
+    movie.actors = jsonObject.value("Actors").toString();
+    movie.plot = jsonObject.value("Plot").toString();
+    movie.language = jsonObject.value("Language").toString();
+    movie.country = jsonObject.value("Country").toString();
+    movie.awards = jsonObject.value("Awards").toString();
+    movie.poster = jsonObject.value("Poster").toString();
+    movie.metascore = jsonObject.value("Metascore").toString();
+    movie.imdbRating = jsonObject.value("imdbRating").toString();
+    movie.imdbVotes = jsonObject.value("imdbVotes").toString();
+    movie.imdbID = jsonObject.value("imdbID").toString();
+    movie.boxOffice = jsonObject.value("BoxOffice").toString();
 
-    qDebug() << "Received movie:" << title << "| Year:" << year << "| Rating:" << rating << "| Votes:" << votes;
+    // Extract ratings array
+    QJsonArray ratingsArray = jsonObject.value("Ratings").toArray();
+    QStringList ratingsList;
+    for (const QJsonValue &value : ratingsArray)
+    {
+        QJsonObject ratingObj = value.toObject();
+        QString source = ratingObj.value("Source").toString();
+        QString ratingValue = ratingObj.value("Value").toString();
+        ratingsList.append(source + ": " + ratingValue);
+    }
+    movie.allRatings = ratingsList.join("; ");
 
-    QString runtime = jsonObject.value("Runtime").toString();
-    QString director = jsonObject.value("Director").toString();
-    QString actors = jsonObject.value("Actors").toString();
-    QString awards = jsonObject.value("Awards").toString();
-    QString language = jsonObject.value("Language").toString();
-    QString country = jsonObject.value("Country").toString();
+    qDebug() << "Received movie:" << movie.title << "| Year:" << movie.year
+             << "| IMDb Rating:" << movie.imdbRating << "| Votes:" << movie.imdbVotes;
 
-    QStringList movieData = {
-        title, rating, votes, director, year, runtime,
-        actors, awards, language, country};
-
-    // Save to database
-    if (movieDb && movieDb->saveMovie(movieData))
+    // Save to database - pass the Movie object directly
+    if (movieDb && movieDb->saveMovie(movie))
     {
         qDebug() << "Movie data saved to database";
     }
@@ -89,6 +107,6 @@ void OmdbClient::onMovieFetched(QNetworkReply *reply)
         qDebug() << "Failed to save movie data to database";
     }
 
-    emit movieFetched(movieData);
+    emit movieFetched(movie);
     reply->deleteLater();
 }

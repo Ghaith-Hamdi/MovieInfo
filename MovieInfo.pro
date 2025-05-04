@@ -11,7 +11,8 @@ SOURCES += \
 HEADERS += \
     OmdbClient.h \
     moviedb.h \
-    mainwindow.h
+    mainwindow.h \
+    movie.h
 
 FORMS += \
     mainwindow.ui

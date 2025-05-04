@@ -12,6 +12,7 @@
 #include <QThreadPool>
 #include <QtConcurrent>
 #include <moviedb.h>
+#include "movie.h"
 
 class OmdbClient : public QObject
 {
@@ -24,7 +25,7 @@ public:
     void fetchMovie(const QString &movieName, int year = 0);
 
 signals:
-    void movieFetched(const QList<QString> &movieData);
+    void movieFetched(const Movie &movie);
     void fetchFailed(const QString &error);
 
 private slots:

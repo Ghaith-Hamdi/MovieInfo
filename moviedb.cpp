@@ -72,7 +72,8 @@ bool MovieDB::createTable()
         "actors TEXT, "
         "awards TEXT, "
         "language TEXT, "
-        "country TEXT)");
+        "country TEXT, "
+        "boxoffice TEXT)");
 
     if (!success)
     {
@@ -81,84 +82,57 @@ bool MovieDB::createTable()
     return success;
 }
 
-bool MovieDB::saveMovie(const QStringList &movieData)
+bool MovieDB::saveMovie(const Movie &movie)
 {
-    if (movieData.size() < 10)
-    {
-        qDebug() << "Invalid movie data size";
-        return false;
-    }
-
     if (!db.isOpen())
     {
         qDebug() << "Database is not open";
         return false;
     }
 
-    // Start transaction
-    if (!db.transaction())
-    {
-        qDebug() << "Failed to start transaction:" << db.lastError().text();
-        return false;
-    }
-
     QSqlQuery query(db);
-    query.prepare(
-        "INSERT OR REPLACE INTO movies ("
-        "title, rating, votes, director, year, runtime, "
-        "actors, awards, language, country) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    query.prepare("INSERT OR REPLACE INTO movies (title, rating, votes, director, year, runtime, "
+                  "actors, awards, language, country, boxoffice) "
+                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-    for (int i = 0; i < movieData.size() && i < 10; ++i)
-    {
-        query.bindValue(i, movieData[i]);
-    }
+    query.bindValue(0, movie.title);
+    query.bindValue(1, movie.imdbRating);
+    query.bindValue(2, movie.imdbVotes);
+    query.bindValue(3, movie.director);
+    query.bindValue(4, movie.year);
+    query.bindValue(5, movie.runtime);
+    query.bindValue(6, movie.actors);
+    query.bindValue(7, movie.awards);
+    query.bindValue(8, movie.language);
+    query.bindValue(9, movie.country);
+    query.bindValue(10, movie.boxOffice);
 
-    bool success = query.exec();
-
-    if (!success)
-    {
-        qDebug() << "Query failed:" << query.lastError().text();
-        db.rollback();
-        return false;
-    }
-
-    // Commit transaction
-    if (!db.commit())
-    {
-        qDebug() << "Failed to commit transaction:" << db.lastError().text();
-        db.rollback();
-        return false;
-    }
-
-    qDebug() << "Movie saved successfully:" << movieData[0]; // Print title
-
-    QSqlQuery countQuery(db);
-    if (countQuery.exec("SELECT COUNT(*) FROM movies"))
-    {
-        countQuery.next();
-        qDebug() << "Total movies in database:" << countQuery.value(0).toInt();
-    }
-
-    return true;
+    return query.exec();
 }
 
-QStringList MovieDB::getMovie(const QString &title)
+Movie MovieDB::getMovie(const QString &title)
 {
-    QSqlQuery query(db); // Use the specific database connection
+    Movie movie;
+    QSqlQuery query(db);
     query.prepare("SELECT * FROM movies WHERE title = ?");
     query.bindValue(0, title);
 
     if (query.exec() && query.next())
     {
-        QStringList movieData;
-        for (int i = 0; i < 10; ++i)
-        {
-            movieData << query.value(i).toString();
-        }
-        return movieData;
+        movie.title = query.value("title").toString();
+        movie.imdbRating = query.value("rating").toString();
+        movie.imdbVotes = query.value("votes").toString();
+        movie.director = query.value("director").toString();
+        movie.year = query.value("year").toString();
+        movie.runtime = query.value("runtime").toString();
+        movie.actors = query.value("actors").toString();
+        movie.awards = query.value("awards").toString();
+        movie.language = query.value("language").toString();
+        movie.country = query.value("country").toString();
+        movie.boxOffice = query.value("boxoffice").toString();
     }
-    return QStringList();
+
+    return movie;
 }
 
 bool MovieDB::movieExists(const QString &title)

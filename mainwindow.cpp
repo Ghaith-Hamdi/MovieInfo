@@ -60,8 +60,8 @@ MainWindow::MainWindow(QWidget *parent)
     // Initialize OmdbClient with your API key and movieDb instance
     omdbClient = new OmdbClient("5af6b86e", movieDb, this);
 
-    ui->tableWidget->setColumnCount(13);
-    ui->tableWidget->setHorizontalHeaderLabels({"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language", "Actions", "Rating", "Votes", "Director"});
+    ui->tableWidget->setColumnCount(15);
+    ui->tableWidget->setHorizontalHeaderLabels({"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language", "Actions", "Rating", "Votes", "Director", "Awards", "Box Office"});
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui->tableWidget->setSortingEnabled(true);
     ui->tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -598,15 +598,14 @@ QString MainWindow::sanitizeForWindowsFolder(const QString &name)
     return sanitized.remove(forbidden);
 }
 
-void MainWindow::onMovieFetched(const QList<QString> &movieData)
+void MainWindow::onMovieFetched(const Movie &movie)
 {
-    if (movieData.size() < 2)
-        return; // Basic validation
-
-    QString title = movieData[0];
-    QString rating = movieData[1];
-    QString NbVotes = movieData[2];
-    QString Direct = movieData[3];
+    QString title = movie.title;
+    QString rating = movie.imdbRating;
+    QString votes = movie.imdbVotes;
+    QString director = movie.director;
+    QString awards = movie.awards;
+    QString boxOffice = movie.boxOffice;
 
     for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
     {
@@ -615,8 +614,10 @@ void MainWindow::onMovieFetched(const QList<QString> &movieData)
         if (sanitizeForWindowsFolder(rowTitle) == sanitizeForWindowsFolder(title))
         {
             ui->tableWidget->setItem(row, 10, new QTableWidgetItem(rating));
-            ui->tableWidget->setItem(row, 11, new NumericTableWidgetItem(NbVotes)); // Use NumericTableWidgetItem
-            ui->tableWidget->setItem(row, 12, new QTableWidgetItem(Direct));
+            ui->tableWidget->setItem(row, 11, new NumericTableWidgetItem(votes));
+            ui->tableWidget->setItem(row, 12, new QTableWidgetItem(director));
+            ui->tableWidget->setItem(row, 13, new QTableWidgetItem(awards));
+            ui->tableWidget->setItem(row, 14, new QTableWidgetItem(boxOffice));
             break;
         }
     }
