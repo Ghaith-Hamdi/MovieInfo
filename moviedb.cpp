@@ -161,6 +161,24 @@ QStringList MovieDB::getMovie(const QString &title)
     return QStringList();
 }
 
+bool MovieDB::movieExists(const QString &title)
+{
+    if (!db.isOpen())
+    {
+        return false;
+    }
+
+    QSqlQuery query(db);
+    query.prepare("SELECT COUNT(*) FROM movies WHERE title = ?");
+    query.bindValue(0, title);
+
+    if (query.exec() && query.next())
+    {
+        return query.value(0).toInt() > 0;
+    }
+    return false;
+}
+
 MovieDB::~MovieDB()
 {
     QString connectionName = db.connectionName();

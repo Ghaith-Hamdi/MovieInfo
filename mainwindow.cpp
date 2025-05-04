@@ -33,8 +33,8 @@ MainWindow::MainWindow(QWidget *parent)
         QMessageBox::warning(this, "Database Error", "Failed to initialize movie database");
     }
 
-    // Initialize OmdbClient with your API key
-    omdbClient = new OmdbClient("5af6b86e", this);
+    // Initialize OmdbClient with your API key and movieDb instance
+    omdbClient = new OmdbClient("5af6b86e", movieDb, this);
 
     ui->tableWidget->setColumnCount(13);
     ui->tableWidget->setHorizontalHeaderLabels({"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language", "Actions", "Rating", "Votes", "Director"});

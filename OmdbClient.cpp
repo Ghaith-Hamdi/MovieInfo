@@ -4,14 +4,11 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QMessageBox>
+#include "moviedb.h"
 
-OmdbClient::OmdbClient(const QString &apiKey, QObject *parent)
-    : QObject(parent), apiKey(apiKey), manager(new QNetworkAccessManager(this)), movieDb(this)
+OmdbClient::OmdbClient(const QString &apiKey, MovieDB *movieDb, QObject *parent)
+    : QObject(parent), apiKey(apiKey), manager(new QNetworkAccessManager(this)), movieDb(movieDb)
 {
-    if (!movieDb.init())
-    {
-        qDebug() << "Failed to initialize movie database";
-    }
 }
 
 OmdbClient::~OmdbClient()
@@ -20,6 +17,19 @@ OmdbClient::~OmdbClient()
 
 void OmdbClient::fetchMovie(const QString &movieName, int year)
 {
+    // Check if movie exists in database first
+    if (movieDb && movieDb->movieExists(movieName))
+    {
+        QStringList movieData = movieDb->getMovie(movieName);
+        if (!movieData.isEmpty())
+        {
+            qDebug() << "Found movie in database:" << movieName;
+            emit movieFetched(movieData);
+            return;
+        }
+    }
+
+    // If not in database, proceed with API call
     QString encodedMovieName = QUrl::toPercentEncoding(movieName);
     QString url = QString("http://www.omdbapi.com/?t=%1&apikey=%2").arg(encodedMovieName).arg(apiKey);
 
@@ -70,7 +80,7 @@ void OmdbClient::onMovieFetched(QNetworkReply *reply)
         actors, awards, language, country};
 
     // Save to database
-    if (movieDb.saveMovie(movieData))
+    if (movieDb && movieDb->saveMovie(movieData))
     {
         qDebug() << "Movie data saved to database";
     }

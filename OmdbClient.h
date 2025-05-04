@@ -18,7 +18,7 @@ class OmdbClient : public QObject
     Q_OBJECT
 
 public:
-    explicit OmdbClient(const QString &apiKey, QObject *parent = nullptr);
+    explicit OmdbClient(const QString &apiKey, MovieDB *movieDb, QObject *parent = nullptr);
     ~OmdbClient();
 
     void fetchMovie(const QString &movieName, int year = 0);
@@ -33,7 +33,7 @@ private slots:
 private:
     QString apiKey;
     QNetworkAccessManager *manager;
-    MovieDB movieDb;
+    MovieDB *movieDb;
 };
 
 #endif // OMDBCLIENT_H

@@ -16,6 +16,7 @@ public:
     bool init();
     bool saveMovie(const QStringList &movieData);
     QStringList getMovie(const QString &title);
+    bool movieExists(const QString &title);
 
 private:
     bool createTable();
