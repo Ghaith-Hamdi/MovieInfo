@@ -22,6 +22,11 @@ public:
 private:
     bool createTable();
     QSqlDatabase db;
+
+    const QStringList movieFields = {
+        "title", "rating", "votes", "director", "year",
+        "runtime", "actors", "awards", "language", "country", "boxoffice"};
+    QMap<QString, QString> movieToMap(const Movie &movie);
 };
 
 #endif // MOVIEDB_H

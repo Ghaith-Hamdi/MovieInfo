@@ -42,18 +42,19 @@ bool MovieDB::init()
 
 bool MovieDB::createTable()
 {
+    QStringList columns;
+    for (const QString &field : movieFields)
+    {
+        QString colType = (field == "title") ? "TEXT PRIMARY KEY" : "TEXT";
+        columns << QString("%1 %2").arg(field, colType);
+    }
+
     QSqlQuery query(db);
     const bool success = query.exec(
-        "CREATE TABLE IF NOT EXISTS movies ("
-        "title TEXT PRIMARY KEY, "
-        "rating TEXT, votes TEXT, director TEXT, year TEXT, "
-        "runtime TEXT, actors TEXT, awards TEXT, language TEXT, "
-        "country TEXT, boxoffice TEXT)");
+        QString("CREATE TABLE IF NOT EXISTS movies (%1)").arg(columns.join(", ")));
 
     if (!success)
-    {
         qDebug() << "Create table error:" << query.lastError().text();
-    }
 
     return success;
 }
@@ -66,23 +67,17 @@ bool MovieDB::saveMovie(const Movie &movie)
         return false;
     }
 
+    QMap<QString, QString> movieMap = movieToMap(movie);
+    QStringList fields = movieFields;
+    QStringList placeholders(fields.size(), "?");
+
     QSqlQuery query(db);
     query.prepare(
-        "INSERT OR REPLACE INTO movies "
-        "(title, rating, votes, director, year, runtime, actors, awards, language, country, boxoffice) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        QString("INSERT OR REPLACE INTO movies (%1) VALUES (%2)")
+            .arg(fields.join(", "), placeholders.join(", ")));
 
-    query.addBindValue(movie.title);
-    query.addBindValue(movie.imdbRating);
-    query.addBindValue(movie.imdbVotes);
-    query.addBindValue(movie.director);
-    query.addBindValue(movie.year);
-    query.addBindValue(movie.runtime);
-    query.addBindValue(movie.actors);
-    query.addBindValue(movie.awards);
-    query.addBindValue(movie.language);
-    query.addBindValue(movie.country);
-    query.addBindValue(movie.boxOffice);
+    for (const QString &field : fields)
+        query.addBindValue(movieMap[field]);
 
     return query.exec();
 }
@@ -133,4 +128,20 @@ MovieDB::~MovieDB()
         db.close();
     }
     QSqlDatabase::removeDatabase(connectionName);
+}
+
+QMap<QString, QString> MovieDB::movieToMap(const Movie &movie)
+{
+    return {
+        {"title", movie.title},
+        {"rating", movie.imdbRating},
+        {"votes", movie.imdbVotes},
+        {"director", movie.director},
+        {"year", movie.year},
+        {"runtime", movie.runtime},
+        {"actors", movie.actors},
+        {"awards", movie.awards},
+        {"language", movie.language},
+        {"country", movie.country},
+        {"boxoffice", movie.boxOffice}};
 }
