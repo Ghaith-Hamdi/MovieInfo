@@ -21,6 +21,7 @@
 #include <QInputDialog>
 #include <windows.h> // For GetLastError()
 #include <QThread>
+#include <QToolBar>
 class NumericTableWidgetItem : public QTableWidgetItem
 {
 public:
@@ -50,6 +51,13 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    // Add a toolbar if it doesn't exist
+    if (!ui->toolBar)
+    {
+        ui->toolBar = new QToolBar(this);
+        this->addToolBar(ui->toolBar);
+    }
+
     // Initialize database
     movieDb = new MovieDB(this);
     if (!movieDb->init())
@@ -63,10 +71,14 @@ MainWindow::MainWindow(QWidget *parent)
     // Setup table
     ui->tableWidget->setColumnCount(22);
     ui->tableWidget->setHorizontalHeaderLabels({"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language",
-                                                "Actions","Rated", "Rating", "Votes", "Director", "Actors", "Writers", "Awards", "Language", "Country", "Box Office", "Plot", "Genre"});
+                                                "Actions", "Rated", "Rating", "Votes", "Director", "Actors", "Writers", "Awards", "Language", "Country", "Box Office", "Plot", "Genre"});
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui->tableWidget->setSortingEnabled(true);
     ui->tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
+
+    // Initialize column visibility features
+    loadColumnVisibilitySettings();
+    setupColumnVisibilityMenu();
 
     connect(ui->tableWidget, &QTableWidget::customContextMenuRequested, this, &MainWindow::showContextMenu);
 
@@ -607,4 +619,123 @@ void MainWindow::onMovieFetched(const Movie &movie)
             break;
         }
     }
+}
+
+void MainWindow::setupColumnVisibilityMenu()
+{
+    // Set up column name mapping
+    columnIndexToName = {
+        {0, "Title"}, {1, "Year"}, {2, "Decade"}, {3, "Resolution"}, {4, "Aspect Ratio"}, {5, "Quality"}, {6, "Size"}, {7, "Duration"}, {8, "Language"}, {9, "Actions"}, {10, "Rated"}, {11, "Rating"}, {12, "Votes"}, {13, "Director"}, {14, "Actors"}, {15, "Writers"}, {16, "Awards"}, {17, "Language"}, {18, "Country"}, {19, "Box Office"}, {20, "Plot"}, {21, "Genre"}};
+
+    // Create a button for column visibility
+    QPushButton *columnVisibilityButton = new QPushButton("Columns", this);
+    ui->toolBar->addWidget(columnVisibilityButton);
+
+    // Create a menu for column visibility options
+    QMenu *columnMenu = new QMenu(this);
+    columnVisibilityButton->setMenu(columnMenu);
+
+    // Add "Select All" option
+    QAction *selectAllAction = columnMenu->addAction("Select All");
+    connect(selectAllAction, &QAction::triggered, this, [this]()
+            {
+        for (int i = 0; i < ui->tableWidget->columnCount(); i++) {
+            columnVisibility[i] = true;
+        }
+        updateColumnVisibility();
+        saveColumnVisibilitySettings(); });
+
+    // Add "Deselect All" option
+    QAction *deselectAllAction = columnMenu->addAction("Deselect All");
+    connect(deselectAllAction, &QAction::triggered, this, [this]()
+            {
+        // Always keep Title column visible
+        for (int i = 0; i < ui->tableWidget->columnCount(); i++) {
+            columnVisibility[i] = (i == 0); // Only Title column remains visible
+        }
+        updateColumnVisibility();
+        saveColumnVisibilitySettings(); });
+
+    columnMenu->addSeparator();
+
+    // Add checkboxes for each column
+    for (int i = 0; i < ui->tableWidget->columnCount(); i++)
+    {
+        QString columnName = columnIndexToName.value(i, ui->tableWidget->horizontalHeaderItem(i)->text());
+        QAction *action = columnMenu->addAction(columnName);
+        action->setCheckable(true);
+        action->setChecked(columnVisibility.value(i, true));
+
+        connect(action, &QAction::toggled, this, [this, i](bool checked)
+                {
+            columnVisibility[i] = checked;
+            updateColumnVisibility();
+            saveColumnVisibilitySettings(); });
+    }
+}
+
+void MainWindow::updateColumnVisibility()
+{
+    // Ensure at least one column (Title) is always visible
+    if (!columnVisibility.value(0, true))
+    {
+        columnVisibility[0] = true;
+    }
+
+    // Update column visibility
+    for (int i = 0; i < ui->tableWidget->columnCount(); i++)
+    {
+        bool isVisible = columnVisibility.value(i, true);
+        ui->tableWidget->setColumnHidden(i, !isVisible);
+    }
+
+    // Resize columns to fit content
+    ui->tableWidget->resizeColumnsToContents();
+}
+
+void MainWindow::saveColumnVisibilitySettings()
+{
+    QSettings settings("YourCompany", "VideoBrowserApp");
+    settings.beginGroup("ColumnVisibility");
+
+    // Clear existing settings
+    settings.remove("");
+
+    // Save each column's visibility state
+    for (auto it = columnVisibility.constBegin(); it != columnVisibility.constEnd(); ++it)
+    {
+        settings.setValue(QString::number(it.key()), it.value());
+    }
+
+    settings.endGroup();
+}
+
+void MainWindow::loadColumnVisibilitySettings()
+{
+    QSettings settings("YourCompany", "VideoBrowserApp");
+    settings.beginGroup("ColumnVisibility");
+
+    // Check if settings exist, if not, set all columns to visible by default
+    QStringList keys = settings.childKeys();
+    if (keys.isEmpty())
+    {
+        for (int i = 0; i < ui->tableWidget->columnCount(); i++)
+        {
+            columnVisibility[i] = true;
+        }
+    }
+    else
+    {
+        // Load settings for each column
+        for (int i = 0; i < ui->tableWidget->columnCount(); i++)
+        {
+            bool isVisible = settings.value(QString::number(i), true).toBool();
+            columnVisibility[i] = isVisible;
+        }
+    }
+
+    settings.endGroup();
+
+    // Apply loaded settings
+    updateColumnVisibility();
 }

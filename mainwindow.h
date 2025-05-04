@@ -73,6 +73,14 @@ private:
     // Helpers: Utility
     QString sanitizeForWindowsFolder(const QString &name);
     QString filepath;
+
+    void setupColumnVisibilityMenu();
+    void saveColumnVisibilitySettings();
+    void loadColumnVisibilitySettings();
+    void updateColumnVisibility();
+    QMap<int, QString> columnIndexToName;
+    QMap<int, bool> columnVisibility;
+    QAction *columnVisibilityAction;
 };
 
 #endif // MAINWINDOW_H
