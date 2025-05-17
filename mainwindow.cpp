@@ -390,46 +390,45 @@ void MainWindow::showContextMenu(const QPoint &pos)
     QMenu menu(this);
     QAction *openFolderAction = menu.addAction("Open Containing Folder");
     QAction *renameFolderAction = menu.addAction("Rename Folder");
+    QAction *moveFolderAction = menu.addAction("Move to Archive Folder");
 
-    auto getFileInfo = [this, index]() -> std::optional<QFileInfo>
+    const QString kArchiveFolderPath = "D:/New folder";
+
+    auto getFileInfo = [this](int row) -> std::optional<QFileInfo>
     {
-        auto *item = ui->tableWidget->item(index.row(), 0);
+        auto *item = ui->tableWidget->item(row, 0);
         if (!item)
             return std::nullopt;
 
         QString filePath = item->data(FilePathRole).toString();
         if (filePath.isEmpty())
-        {
-            QMessageBox::warning(this, "Error", "No path information available.");
             return std::nullopt;
-        }
 
         QFileInfo fileInfo(filePath);
         if (!fileInfo.exists())
-        {
-            QMessageBox::warning(this, "Error", "The file does not exist.");
             return std::nullopt;
-        }
 
         return fileInfo;
     };
 
     connect(openFolderAction, &QAction::triggered, this, [=]()
             {
-        auto fileInfoOpt = getFileInfo();
-        if (!fileInfoOpt) return;
-
+        auto fileInfoOpt = getFileInfo(index.row());
+        if (!fileInfoOpt) {
+            QMessageBox::warning(this, "Error", "Could not determine file path.");
+            return;
+        }
         QDesktopServices::openUrl(QUrl::fromLocalFile(fileInfoOpt->absolutePath())); });
 
     connect(renameFolderAction, &QAction::triggered, this, [=]()
             {
-        auto fileInfoOpt = getFileInfo();
-        if (!fileInfoOpt) return;
+        auto fileInfoOpt = getFileInfo(index.row());
+        if (!fileInfoOpt)
+            return;
 
         const QFileInfo &fileInfo = *fileInfoOpt;
         QDir parentDir = fileInfo.dir();
         QString currentPath = parentDir.absolutePath();
-        QString currentName = parentDir.dirName();
         QString title = ui->tableWidget->item(index.row(), 0)->text();
         QString year = ui->tableWidget->item(index.row(), 1)->text();
         QString suggestedName = QString("%1 (%2)").arg(title, year);
@@ -459,9 +458,6 @@ void MainWindow::showContextMenu(const QPoint &pos)
         QString newPathNative = QDir::toNativeSeparators(newPath);
         QString currentPathNative = QDir::toNativeSeparators(currentPath);
 
-        qDebug() << "Current path:" << currentPathNative;
-        qDebug() << "New path:" << newPathNative;
-
         bool renamed = QDir().rename(currentPathNative, newPathNative);
         if (!renamed) {
             QProcess elevate;
@@ -487,6 +483,55 @@ void MainWindow::showContextMenu(const QPoint &pos)
                                    .arg(currentPathNative)
                                    .arg(newPathNative);
             QMessageBox::warning(this, "Error", errorMsg);
+        } });
+
+    connect(moveFolderAction, &QAction::triggered, this, [=]()
+            {
+        QList<QTableWidgetSelectionRange> ranges = ui->tableWidget->selectedRanges();
+        if (ranges.isEmpty()) {
+            QMessageBox::warning(this, "No Selection", "Please select at least one movie.");
+            return;
+        }
+
+        QDir archiveDir(kArchiveFolderPath);
+        if (!archiveDir.exists() && !archiveDir.mkpath(".")) {
+            QMessageBox::warning(this, "Error", "Failed to create archive folder.");
+            return;
+        }
+
+        int movedCount = 0;
+
+        for (const QTableWidgetSelectionRange &range : ranges) {
+            for (int row = range.topRow(); row <= range.bottomRow(); ++row) {
+                auto fileInfoOpt = getFileInfo(row);
+                if (!fileInfoOpt)
+                    continue;
+
+                const QFileInfo &fileInfo = *fileInfoOpt;
+                QDir currentDir = fileInfo.dir();
+                QString currentPath = currentDir.absolutePath();
+                QString folderName = currentDir.dirName();
+                QString newPath = QDir::cleanPath(archiveDir.filePath(folderName));
+
+                if (QDir(newPath).exists())
+                    continue;
+
+                QString currentPathNative = QDir::toNativeSeparators(currentPath);
+                QString newPathNative = QDir::toNativeSeparators(newPath);
+
+                bool moved = QDir().rename(currentPathNative, newPathNative);
+                if (moved) {
+                    QString newFilePath = newPathNative + QDir::separator() + fileInfo.fileName();
+                    ui->tableWidget->item(row, 0)->setData(FilePathRole, newFilePath);
+                    ++movedCount;
+                }
+            }
+        }
+
+        if (movedCount > 0) {
+            QMessageBox::information(this, "Success", QString("Moved %1 folder(s) to archive.").arg(movedCount));
+        } else {
+            QMessageBox::warning(this, "No Folders Moved", "No folders were moved. They may already exist in the archive.");
         } });
 
     menu.exec(ui->tableWidget->viewport()->mapToGlobal(pos));
