@@ -125,7 +125,7 @@ void MainWindow::onSelectFolderClicked()
     if (!folderPath.isEmpty())
     {
         settings.setValue("lastFolder", folderPath);
-        processVideos(folderPath);
+        processVideos(folderPath, false); // Process as folder
     }
 }
 
@@ -141,21 +141,17 @@ void MainWindow::dropEvent(QDropEvent *event)
     if (urls.isEmpty())
         return;
 
-    QStringList filePaths;
     for (const QUrl &url : urls)
     {
         QString localFile = url.toLocalFile();
         if (QFileInfo(localFile).isFile())
         {
             QString ext = QFileInfo(localFile).suffix().toLower();
-            if (ext == "mp4" || ext == "mkv" || ext == "avi" || ext == "mov")
-                filePaths << localFile;
+            if (ext == "mp4" || ext == "mkv" || ext == "avi" || ext == "mov" || ext == "flv" || ext == "wmv")
+            {
+                processVideos(localFile, true); // Process as single file
+            }
         }
-    }
-
-    if (!filePaths.isEmpty())
-    {
-        processVideos(filePaths);
     }
 }
 
@@ -165,80 +161,39 @@ void MainWindow::processVideos(const QStringList &filePaths)
 {
     for (const QString &filePath : filePaths)
     {
-        processSingleVideo(filePath); // <- New function
+        processVideos(filePath, true);
     }
 }
 
-void MainWindow::processSingleVideo(const QString &filePath)
+void MainWindow::processVideos(const QString &path, bool isSingleFile)
 {
     QStringList videoExtensions = {".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv"};
-    if (!videoExtensions.contains("." + QFileInfo(filePath).suffix().toLower()))
-        return;
-
-    QString resolution = getVideoResolution(filePath);
-    QString aspectRatio = getAspectRatio(resolution);
-    QString folderName = QFileInfo(filePath).dir().dirName();
-    auto [title, year] = parseFolderName(folderName);
-    QString decade = getDecade(year);
-    QString quality = getVideoQuality(filePath);
-    QString duration = getVideoDuration(filePath);
-    QString fileSize = getFileSize(filePath);
-    QString audioLanguage = getAudioLanguage(filePath);
-
-    int row = ui->tableWidget->rowCount();
-    ui->tableWidget->insertRow(row);
-
-    QTableWidgetItem *titleItem = new QTableWidgetItem(title);
-    titleItem->setData(FilePathRole, filePath);
-    ui->tableWidget->setItem(row, 0, titleItem);
-    ui->tableWidget->setItem(row, 1, new QTableWidgetItem(year));
-    ui->tableWidget->setItem(row, 2, new QTableWidgetItem(decade));
-    ui->tableWidget->setItem(row, 3, new QTableWidgetItem(resolution));
-    ui->tableWidget->setItem(row, 4, new QTableWidgetItem(aspectRatio));
-    ui->tableWidget->setItem(row, 5, new QTableWidgetItem(quality));
-    ui->tableWidget->setItem(row, 6, new NumericTableWidgetItem(fileSize));
-    ui->tableWidget->setItem(row, 7, new QTableWidgetItem(duration));
-    ui->tableWidget->setItem(row, 8, new QTableWidgetItem(audioLanguage));
-
-    QPushButton *openButton = new QPushButton("Open");
-    connect(openButton, &QPushButton::clicked, this, [filePath]()
-            { QDesktopServices::openUrl(QUrl::fromLocalFile(filePath)); });
-
-    QPushButton *imdbButton = new QPushButton("IMDb");
-    connect(imdbButton, &QPushButton::clicked, this, [this, title, year]()
-            { openImdbPage(title, year); });
-
-    QPushButton *paheButton = new QPushButton("Pahe");
-    connect(paheButton, &QPushButton::clicked, this, [this, title, year]()
-            { openPahePage(title, year); });
-
-    QWidget *buttonsWidget = new QWidget();
-    QHBoxLayout *layout = new QHBoxLayout(buttonsWidget);
-    layout->addWidget(openButton);
-    layout->addWidget(imdbButton);
-    layout->addWidget(paheButton);
-    layout->setContentsMargins(0, 0, 0, 0);
-    ui->tableWidget->setCellWidget(row, 9, buttonsWidget);
-}
-
-void MainWindow::processVideos(const QString &folderPath)
-{
-    QStringList videoExtensions = {".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv"};
-    int row = 0;
-
     QSet<QString> decades, aspectRatios, qualities;
+    QStringList filesToProcess;
 
-    QDirIterator it(folderPath, QDirIterator::Subdirectories);
-    while (it.hasNext())
+    if (isSingleFile)
     {
-        QString filePath = it.next();
-        QFileInfo fileInfo(filePath);
-        if (!videoExtensions.contains("." + fileInfo.suffix().toLower()))
-            continue;
+        QFileInfo fileInfo(path);
+        if (videoExtensions.contains("." + fileInfo.suffix().toLower()))
+            filesToProcess.append(path);
+    }
+    else
+    {
+        QDirIterator it(path, QDirIterator::Subdirectories);
+        while (it.hasNext())
+        {
+            QString filePath = it.next();
+            QFileInfo fileInfo(filePath);
+            if (videoExtensions.contains("." + fileInfo.suffix().toLower()))
+                filesToProcess.append(filePath);
+        }
+    }
 
+    for (const QString &filePath : filesToProcess)
+    {
         QString resolution = getVideoResolution(filePath);
         QString aspectRatio = getAspectRatio(resolution);
-        QString folderName = fileInfo.dir().dirName();
+        QString folderName = QFileInfo(filePath).dir().dirName();
         auto [title, year] = parseFolderName(folderName);
         QString decade = getDecade(year);
         QString quality = getVideoQuality(filePath);
@@ -250,6 +205,7 @@ void MainWindow::processVideos(const QString &folderPath)
         aspectRatios.insert(aspectRatio);
         qualities.insert(quality);
 
+        int row = ui->tableWidget->rowCount();
         ui->tableWidget->insertRow(row);
         QTableWidgetItem *titleItem = new QTableWidgetItem(title);
         titleItem->setData(FilePathRole, filePath);
@@ -282,8 +238,6 @@ void MainWindow::processVideos(const QString &folderPath)
         layout->addWidget(paheButton);
         layout->setContentsMargins(0, 0, 0, 0);
         ui->tableWidget->setCellWidget(row, 9, buttonsWidget);
-
-        row++;
     }
 
     addComboBoxItemsSorted(ui->comboBoxDecade, decades);
