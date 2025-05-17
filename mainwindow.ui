@@ -60,6 +60,13 @@
       </property>
      </widget>
     </item>
+    <item>
+     <widget class="QPushButton" name="selectFolderButton">
+      <property name="text">
+       <string>Select Folder</string>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>

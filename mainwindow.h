@@ -21,9 +21,14 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
+protected:
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
+
 private slots:
     // Core functionality
     void processVideos(const QString &folderPath);
+    void processVideos(const QStringList &filePaths);
     void onFetchClicked();
     void onMovieFetched(const Movie &movie);
 
@@ -89,6 +94,8 @@ private:
     QMap<int, int> columnOriginalToCurrentMap; // Maps original column index to current position
     QMap<int, int> columnCurrentToOriginalMap; // Maps current position to original column index
     void updateHeaderLabels();
+    void processSingleVideo(const QString &filePath);
+    void onSelectFolderClicked();
 };
 
 #endif // MAINWINDOW_H

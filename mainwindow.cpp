@@ -22,6 +22,8 @@
 #include <windows.h> // For GetLastError()
 #include <QThread>
 #include <QToolBar>
+#include <QDragEnterEvent>
+
 class NumericTableWidgetItem : public QTableWidgetItem
 {
 public:
@@ -85,20 +87,13 @@ MainWindow::MainWindow(QWidget *parent)
     setupColumnReorderingMenu();
 
     connect(ui->tableWidget, &QTableWidget::customContextMenuRequested, this, &MainWindow::showContextMenu);
+    connect(ui->selectFolderButton, &QPushButton::clicked, this, &MainWindow::onSelectFolderClicked);
 
     // Initialize combo boxes with "All"
     for (auto combo : {ui->comboBoxDecade, ui->comboBoxAspectRatio, ui->comboBoxQuality})
         addComboBoxItemIfNotExist(combo, "All");
 
-    // Load last folder
-    QSettings settings("YourCompany", "VideoBrowserApp");
-    QString lastFolder = settings.value("lastFolder").toString();
-    QString folderPath = QFileDialog::getExistingDirectory(this, "Select Folder", lastFolder);
-    if (!folderPath.isEmpty())
-    {
-        settings.setValue("lastFolder", folderPath);
-        processVideos(folderPath);
-    }
+    setAcceptDrops(true);
 
     // Connect combo boxes to filterTable
     auto connectCombo = [this](QComboBox *box)
@@ -122,7 +117,109 @@ MainWindow::~MainWindow()
     // movieDb and omdbClient will be deleted automatically by Qt parent system
 }
 
+void MainWindow::onSelectFolderClicked()
+{
+    QSettings settings("YourCompany", "VideoBrowserApp");
+    QString lastFolder = settings.value("lastFolder").toString();
+    QString folderPath = QFileDialog::getExistingDirectory(this, "Select Folder", lastFolder);
+    if (!folderPath.isEmpty())
+    {
+        settings.setValue("lastFolder", folderPath);
+        processVideos(folderPath);
+    }
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent *event)
+{
+    if (event->mimeData()->hasUrls())
+        event->acceptProposedAction();
+}
+
+void MainWindow::dropEvent(QDropEvent *event)
+{
+    QList<QUrl> urls = event->mimeData()->urls();
+    if (urls.isEmpty())
+        return;
+
+    QStringList filePaths;
+    for (const QUrl &url : urls)
+    {
+        QString localFile = url.toLocalFile();
+        if (QFileInfo(localFile).isFile())
+        {
+            QString ext = QFileInfo(localFile).suffix().toLower();
+            if (ext == "mp4" || ext == "mkv" || ext == "avi" || ext == "mov")
+                filePaths << localFile;
+        }
+    }
+
+    if (!filePaths.isEmpty())
+    {
+        processVideos(filePaths);
+    }
+}
+
 // ===================== Video Processing =====================
+
+void MainWindow::processVideos(const QStringList &filePaths)
+{
+    for (const QString &filePath : filePaths)
+    {
+        processSingleVideo(filePath); // <- New function
+    }
+}
+
+void MainWindow::processSingleVideo(const QString &filePath)
+{
+    QStringList videoExtensions = {".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv"};
+    if (!videoExtensions.contains("." + QFileInfo(filePath).suffix().toLower()))
+        return;
+
+    QString resolution = getVideoResolution(filePath);
+    QString aspectRatio = getAspectRatio(resolution);
+    QString folderName = QFileInfo(filePath).dir().dirName();
+    auto [title, year] = parseFolderName(folderName);
+    QString decade = getDecade(year);
+    QString quality = getVideoQuality(filePath);
+    QString duration = getVideoDuration(filePath);
+    QString fileSize = getFileSize(filePath);
+    QString audioLanguage = getAudioLanguage(filePath);
+
+    int row = ui->tableWidget->rowCount();
+    ui->tableWidget->insertRow(row);
+
+    QTableWidgetItem *titleItem = new QTableWidgetItem(title);
+    titleItem->setData(FilePathRole, filePath);
+    ui->tableWidget->setItem(row, 0, titleItem);
+    ui->tableWidget->setItem(row, 1, new QTableWidgetItem(year));
+    ui->tableWidget->setItem(row, 2, new QTableWidgetItem(decade));
+    ui->tableWidget->setItem(row, 3, new QTableWidgetItem(resolution));
+    ui->tableWidget->setItem(row, 4, new QTableWidgetItem(aspectRatio));
+    ui->tableWidget->setItem(row, 5, new QTableWidgetItem(quality));
+    ui->tableWidget->setItem(row, 6, new NumericTableWidgetItem(fileSize));
+    ui->tableWidget->setItem(row, 7, new QTableWidgetItem(duration));
+    ui->tableWidget->setItem(row, 8, new QTableWidgetItem(audioLanguage));
+
+    QPushButton *openButton = new QPushButton("Open");
+    connect(openButton, &QPushButton::clicked, this, [filePath]()
+            { QDesktopServices::openUrl(QUrl::fromLocalFile(filePath)); });
+
+    QPushButton *imdbButton = new QPushButton("IMDb");
+    connect(imdbButton, &QPushButton::clicked, this, [this, title, year]()
+            { openImdbPage(title, year); });
+
+    QPushButton *paheButton = new QPushButton("Pahe");
+    connect(paheButton, &QPushButton::clicked, this, [this, title, year]()
+            { openPahePage(title, year); });
+
+    QWidget *buttonsWidget = new QWidget();
+    QHBoxLayout *layout = new QHBoxLayout(buttonsWidget);
+    layout->addWidget(openButton);
+    layout->addWidget(imdbButton);
+    layout->addWidget(paheButton);
+    layout->setContentsMargins(0, 0, 0, 0);
+    ui->tableWidget->setCellWidget(row, 9, buttonsWidget);
+}
 
 void MainWindow::processVideos(const QString &folderPath)
 {

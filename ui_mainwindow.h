@@ -40,6 +40,7 @@ public:
     QComboBox *comboBoxAspectRatio;
     QPushButton *exportButton;
     QPushButton *fetchButton;
+    QPushButton *selectFolderButton;
     QStatusBar *statusbar;
     QToolBar *toolBar;
 
@@ -103,6 +104,11 @@ public:
 
         verticalLayout_3->addWidget(fetchButton);
 
+        selectFolderButton = new QPushButton(centralwidget);
+        selectFolderButton->setObjectName("selectFolderButton");
+
+        verticalLayout_3->addWidget(selectFolderButton);
+
         MainWindow->setCentralWidget(centralwidget);
         statusbar = new QStatusBar(MainWindow);
         statusbar->setObjectName("statusbar");
@@ -121,6 +127,7 @@ public:
         MainWindow->setWindowTitle(QCoreApplication::translate("MainWindow", "MainWindow", nullptr));
         exportButton->setText(QCoreApplication::translate("MainWindow", "Export", nullptr));
         fetchButton->setText(QCoreApplication::translate("MainWindow", "Fetch", nullptr));
+        selectFolderButton->setText(QCoreApplication::translate("MainWindow", "Select Folder", nullptr));
         toolBar->setWindowTitle(QCoreApplication::translate("MainWindow", "toolBar", nullptr));
     } // retranslateUi
 
