@@ -30,14 +30,11 @@ void OmdbClient::fetchMovie(const QString &movieName, int year)
     }
 
     // If not in DB, fetch from OMDb API
-    QString url = QString("http://www.omdbapi.com/?t=%1&apikey=%2")
-                      .arg(QUrl::toPercentEncoding(movieName))
+    QString encodedTitle = QUrl::toPercentEncoding(movieName).replace("%20", "+");
+    QString url = QString("http://www.omdbapi.com/?t=%1&y=%2&apikey=%3")
+                      .arg(encodedTitle)
+                      .arg(year)
                       .arg(apiKey);
-
-    if (year > 0)
-    {
-        url += QString("&y=%1").arg(year);
-    }
 
     qDebug() << "Sending request to OMDb API:" << url;
 

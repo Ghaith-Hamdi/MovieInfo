@@ -139,8 +139,8 @@ QMap<QString, QString> MovieDB::movieToMap(const Movie &movie)
     return {
         {"title", movie.title},
         {"year", movie.year},
-        {"rating", movie.imdbRating},
         {"rated", movie.rated},
+        {"rating", movie.imdbRating},
         {"votes", movie.imdbVotes},
         {"runtime", movie.runtime},
         {"director", movie.director},

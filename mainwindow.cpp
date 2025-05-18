@@ -69,8 +69,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Initialize OMDb client
     omdbClient = new OmdbClient("5af6b86e", movieDb, this);
-
-    // Setup table
+    // omdbClient = new OmdbClient("c774e520", movieDb, this);
+    //  Setup table
     ui->tableWidget->setColumnCount(22);
     ui->tableWidget->setHorizontalHeaderLabels({"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language",
                                                 "Actions", "Rated", "Rating", "Votes", "Director", "Actors", "Writers", "Awards", "Language", "Country", "Box Office", "Plot", "Genre"});
@@ -652,35 +652,27 @@ void MainWindow::exportToExcel()
 
 void MainWindow::onFetchClicked()
 {
-    QStringList titleList;
-
-    qDebug() << "Fetch button clicked. Reading titles from table.";
+    qDebug() << "Fetch button clicked. Reading titles and years from table.";
 
     for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
     {
-        QTableWidgetItem *item = ui->tableWidget->item(row, 0);
-        if (item)
+        QTableWidgetItem *titleItem = ui->tableWidget->item(row, 0);
+        QTableWidgetItem *yearItem = ui->tableWidget->item(row, 1);
+
+        if (titleItem)
         {
-            const QString title = item->text().trimmed();
+            QString title = titleItem->text().trimmed();
+            int year = 0;
+
+            if (yearItem)
+                year = yearItem->text().trimmed().toInt();
+
             if (!title.isEmpty())
             {
-                qDebug() << "Found title in row" << row << ":" << title;
-                titleList.append(title);
+                qDebug() << "Found movie in row" << row << ":" << title << ", year:" << year;
+                omdbClient->fetchMovie(title, year);
             }
         }
-    }
-
-    if (titleList.isEmpty())
-    {
-        qDebug() << "No titles found in table.";
-        return;
-    }
-
-    qDebug() << "Fetching movie data for" << titleList.size() << "titles.";
-    for (const auto &title : titleList)
-    {
-        qDebug() << "Requesting movie:" << title;
-        omdbClient->fetchMovie(title);
     }
 }
 
