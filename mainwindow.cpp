@@ -68,8 +68,9 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     // Initialize OMDb client
-    omdbClient = new OmdbClient("5af6b86e", movieDb, this);
+    // omdbClient = new OmdbClient("5af6b86e", movieDb, this);
     // omdbClient = new OmdbClient("c774e520", movieDb, this);
+    omdbClient = new OmdbClient("10f95a16", movieDb, this);
     //  Setup table
     ui->tableWidget->setColumnCount(22);
     ui->tableWidget->setHorizontalHeaderLabels({"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language",
