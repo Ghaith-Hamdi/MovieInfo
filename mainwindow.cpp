@@ -144,14 +144,20 @@ void MainWindow::dropEvent(QDropEvent *event)
 
     for (const QUrl &url : urls)
     {
-        QString localFile = url.toLocalFile();
-        if (QFileInfo(localFile).isFile())
+        QString localPath = url.toLocalFile();
+        QFileInfo info(localPath);
+
+        if (info.isFile())
         {
-            QString ext = QFileInfo(localFile).suffix().toLower();
+            QString ext = info.suffix().toLower();
             if (ext == "mp4" || ext == "mkv" || ext == "avi" || ext == "mov" || ext == "flv" || ext == "wmv")
             {
-                processVideos(localFile, true); // Process as single file
+                processVideos(localPath, true); // Process single video file
             }
+        }
+        else if (info.isDir())
+        {
+            processVideos(localPath, false); // Process entire folder recursively
         }
     }
 }
@@ -169,7 +175,7 @@ void MainWindow::processVideos(const QStringList &filePaths)
 void MainWindow::processVideos(const QString &path, bool isSingleFile)
 {
     QStringList videoExtensions = {".mp4", ".mkv", ".avi", ".mov", ".flv", ".wmv"};
-    QSet<QString> decades, aspectRatios, qualities;
+    QSet<QString> decades, aspectRatios, qualities, raitings;
     QStringList filesToProcess;
 
     if (isSingleFile)
