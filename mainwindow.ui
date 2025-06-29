@@ -6,65 +6,411 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1496</width>
-    <height>959</height>
+    <width>1600</width>
+    <height>1000</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>MovieInfo - Video Library Manager</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QMainWindow {
+    background-color: #1e1e1e;
+}
+
+QTableWidget {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+    border-radius: 8px;
+    gridline-color: #404040;
+    selection-background-color: #3c5a96;
+    alternate-background-color: #252525;
+    color: #e0e0e0;
+}
+
+QTableWidget::item {
+    padding: 8px;
+    border-bottom: 1px solid #404040;
+    color: #e0e0e0;
+}
+
+QTableWidget::item:selected {
+    background-color: #3c5a96;
+    color: #ffffff;
+}
+
+QHeaderView::section {
+    background-color: #1a1a1a;
+    color: #ffffff;
+    padding: 12px 8px;
+    border: none;
+    font-weight: bold;
+    font-size: 12px;
+    border-bottom: 1px solid #404040;
+}
+
+QHeaderView::section:hover {
+    background-color: #2a2a2a;
+}
+
+QPushButton {
+    background-color: #3c5a96;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 12px;
+    min-height: 20px;
+}
+
+QPushButton:hover {
+    background-color: #4a6ba8;
+}
+
+QPushButton:pressed {
+    background-color: #2d4a7a;
+}
+
+QPushButton:disabled {
+    background-color: #404040;
+    color: #808080;
+}
+
+QLineEdit {
+    padding: 10px;
+    border: 2px solid #404040;
+    border-radius: 6px;
+    font-size: 14px;
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+}
+
+QLineEdit:focus {
+    border-color: #3c5a96;
+    outline: none;
+}
+
+QLineEdit::placeholder {
+    color: #808080;
+}
+
+QComboBox {
+    padding: 8px 12px;
+    border: 2px solid #404040;
+    border-radius: 6px;
+    background-color: #2d2d2d;
+    font-size: 12px;
+    min-height: 20px;
+    color: #e0e0e0;
+}
+
+QComboBox:focus {
+    border-color: #3c5a96;
+}
+
+QComboBox::drop-down {
+    border: none;
+    width: 20px;
+}
+
+QComboBox::down-arrow {
+    image: none;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #808080;
+    margin-right: 5px;
+}
+
+QComboBox QAbstractItemView {
+    background-color: #2d2d2d;
+    border: 2px solid #3c5a96;
+    border-radius: 6px;
+    color: #e0e0e0;
+    selection-background-color: #3c5a96;
+    selection-color: #ffffff;
+}
+
+QGroupBox {
+    font-weight: bold;
+    border: 2px solid #404040;
+    border-radius: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    left: 10px;
+    padding: 0 8px 0 8px;
+    color: #3c5a96;
+}
+
+QLabel {
+    color: #e0e0e0;
+}
+
+QStatusBar {
+    background-color: #1a1a1a;
+    border-top: 1px solid #404040;
+    color: #e0e0e0;
+}
+
+QToolBar {
+    background-color: #1a1a1a;
+    border-bottom: 1px solid #404040;
+    spacing: 5px;
+    padding: 5px;
+}
+
+QToolBar QToolButton {
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 6px;
+    margin: 2px;
+    color: #e0e0e0;
+}
+
+QToolBar QToolButton:hover {
+    background-color: #3c5a96;
+    border-color: #3c5a96;
+}
+
+QScrollBar:vertical {
+    background-color: #1a1a1a;
+    width: 12px;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #404040;
+    border-radius: 6px;
+    min-height: 20px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: #505050;
+}
+
+QScrollBar:horizontal {
+    background-color: #1a1a1a;
+    height: 12px;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #404040;
+    border-radius: 6px;
+    min-width: 20px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background-color: #505050;
+}</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_3">
+    <property name="spacing">
+     <number>10</number>
+    </property>
+    <property name="leftMargin">
+     <number>15</number>
+    </property>
+    <property name="topMargin">
+     <number>15</number>
+    </property>
+    <property name="rightMargin">
+     <number>15</number>
+    </property>
+    <property name="bottomMargin">
+     <number>15</number>
+    </property>
     <item>
-     <widget class="QTableWidget" name="tableWidget">
-      <property name="sizeAdjustPolicy">
-       <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents</enum>
+     <widget class="QGroupBox" name="tableGroupBox">
+      <property name="title">
+       <string>Video Library</string>
       </property>
+      <layout class="QVBoxLayout" name="tableLayout">
+       <item>
+        <widget class="QTableWidget" name="tableWidget">
+         <property name="sizeAdjustPolicy">
+          <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents</enum>
+         </property>
+         <property name="alternatingRowColors">
+          <bool>true</bool>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </widget>
     </item>
     <item>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
-      <item>
-       <widget class="QLineEdit" name="searchLineEdit"/>
-      </item>
-      <item>
-       <layout class="QVBoxLayout" name="verticalLayout">
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout">
-          <item>
-           <widget class="QComboBox" name="comboBoxQuality"/>
-          </item>
-          <item>
-           <widget class="QComboBox" name="comboBoxDecade"/>
-          </item>
-          <item>
-           <widget class="QComboBox" name="comboBoxAspectRatio"/>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <widget class="QPushButton" name="exportButton">
-          <property name="text">
-           <string>Export</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <widget class="QPushButton" name="fetchButton">
-      <property name="text">
-       <string>Fetch</string>
+     <widget class="QGroupBox" name="searchGroupBox">
+      <property name="title">
+       <string>Search &amp; Filter</string>
       </property>
+      <layout class="QVBoxLayout" name="searchLayout">
+       <property name="spacing">
+        <number>10</number>
+       </property>
+       <item>
+        <widget class="QLineEdit" name="searchLineEdit">
+         <property name="placeholderText">
+          <string>Search movies by title...</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="filterLayout">
+         <property name="spacing">
+          <number>10</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="qualityLabel">
+           <property name="text">
+            <string>Quality:</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="comboBoxQuality">
+           <property name="minimumSize">
+            <size>
+             <width>120</width>
+             <height>0</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="decadeLabel">
+           <property name="text">
+            <string>Decade:</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="comboBoxDecade">
+           <property name="minimumSize">
+            <size>
+             <width>120</width>
+             <height>0</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="aspectLabel">
+           <property name="text">
+            <string>Aspect Ratio:</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="comboBoxAspectRatio">
+           <property name="minimumSize">
+            <size>
+             <width>120</width>
+             <height>0</height>
+            </size>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+      </layout>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="selectFolderButton">
-      <property name="text">
-       <string>Select Folder</string>
+     <widget class="QGroupBox" name="actionsGroupBox">
+      <property name="title">
+       <string>Actions</string>
       </property>
+      <layout class="QHBoxLayout" name="actionsLayout">
+       <property name="spacing">
+        <number>15</number>
+       </property>
+       <item>
+        <widget class="QPushButton" name="selectFolderButton">
+         <property name="text">
+          <string>📁 Select Folder</string>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>140</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="fetchButton">
+         <property name="text">
+          <string>🔍 Fetch Movie Data</string>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>160</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="exportButton">
+         <property name="text">
+          <string>📊 Export to Excel</string>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>140</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
      </widget>
     </item>
    </layout>
@@ -73,6 +419,9 @@
   <widget class="QToolBar" name="toolBar">
    <property name="windowTitle">
     <string>toolBar</string>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonTextBesideIcon</enum>
    </property>
    <attribute name="toolBarArea">
     <enum>TopToolBarArea</enum>

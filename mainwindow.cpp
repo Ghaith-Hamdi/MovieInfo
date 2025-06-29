@@ -23,6 +23,8 @@
 #include <QThread>
 #include <QToolBar>
 #include <QDragEnterEvent>
+#include <QIcon>
+#include <QFile>
 
 class NumericTableWidgetItem : public QTableWidgetItem
 {
@@ -53,6 +55,10 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    // Set window icon and improve window appearance
+    setWindowIcon(QIcon("icons/app_icon.png")); // You can add an icon later
+    setWindowTitle("MovieInfo - Video Library Manager");
+
     // Add a toolbar if it doesn't exist
     if (!ui->toolBar)
     {
@@ -71,13 +77,27 @@ MainWindow::MainWindow(QWidget *parent)
     // omdbClient = new OmdbClient("5af6b86e", movieDb, this);
     // omdbClient = new OmdbClient("c774e520", movieDb, this);
     omdbClient = new OmdbClient("10f95a16", movieDb, this);
-    //  Setup table
+
+    // Setup table with improved styling
     ui->tableWidget->setColumnCount(22);
     ui->tableWidget->setHorizontalHeaderLabels({"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language",
                                                 "Actions", "Rated", "Rating", "Votes", "Director", "Actors", "Writers", "Awards", "Language", "Country", "Box Office", "Plot", "Genre"});
     ui->tableWidget->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui->tableWidget->setSortingEnabled(true);
     ui->tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
+
+    // Enhanced table styling
+    ui->tableWidget->setAlternatingRowColors(true);
+    ui->tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    ui->tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
+    ui->tableWidget->verticalHeader()->setVisible(false);
+    ui->tableWidget->setShowGrid(true);
+    ui->tableWidget->setGridStyle(Qt::SolidLine);
+
+    // Enhanced header styling
+    ui->tableWidget->horizontalHeader()->setStretchLastSection(true);
+    ui->tableWidget->horizontalHeader()->setHighlightSections(false);
+    ui->tableWidget->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
     // Initialize column visibility features
     loadColumnVisibilitySettings();
@@ -110,6 +130,21 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->searchLineEdit, &QLineEdit::textChanged, this, &MainWindow::filterTableRows);
     connect(omdbClient, &OmdbClient::movieFetched, this, &MainWindow::onMovieFetched);
     connect(ui->fetchButton, &QPushButton::clicked, this, &MainWindow::onFetchClicked);
+
+    // Add tooltips for better user experience
+    ui->searchLineEdit->setToolTip("Search through all movie titles, directors, actors, and other fields");
+    ui->comboBoxQuality->setToolTip("Filter movies by video quality (4K, 1080p, 720p, etc.)");
+    ui->comboBoxDecade->setToolTip("Filter movies by release decade");
+    ui->comboBoxAspectRatio->setToolTip("Filter movies by aspect ratio");
+    ui->selectFolderButton->setToolTip("Select a folder containing video files to add to your library");
+    ui->fetchButton->setToolTip("Fetch additional movie information from IMDb for selected movies");
+    ui->exportButton->setToolTip("Export the current movie library to an Excel file");
+
+    // Add status bar message
+    ui->statusbar->showMessage("Ready to process videos. Drag and drop files or use 'Select Folder' button.");
+
+    // Optionally load external stylesheet for additional styling
+    loadExternalStylesheet();
 }
 
 MainWindow::~MainWindow()
@@ -122,10 +157,11 @@ void MainWindow::onSelectFolderClicked()
 {
     QSettings settings("YourCompany", "VideoBrowserApp");
     QString lastFolder = settings.value("lastFolder").toString();
-    QString folderPath = QFileDialog::getExistingDirectory(this, "Select Folder", lastFolder);
+    QString folderPath = QFileDialog::getExistingDirectory(this, "Select Video Folder", lastFolder);
     if (!folderPath.isEmpty())
     {
         settings.setValue("lastFolder", folderPath);
+        ui->statusbar->showMessage("Processing videos from: " + folderPath);
         processVideos(folderPath, false); // Process as folder
     }
 }
@@ -133,7 +169,10 @@ void MainWindow::onSelectFolderClicked()
 void MainWindow::dragEnterEvent(QDragEnterEvent *event)
 {
     if (event->mimeData()->hasUrls())
+    {
         event->acceptProposedAction();
+        ui->statusbar->showMessage("Drop files or folders to add them to the library");
+    }
 }
 
 void MainWindow::dropEvent(QDropEvent *event)
@@ -141,6 +180,9 @@ void MainWindow::dropEvent(QDropEvent *event)
     QList<QUrl> urls = event->mimeData()->urls();
     if (urls.isEmpty())
         return;
+
+    int processedFiles = 0;
+    int processedFolders = 0;
 
     for (const QUrl &url : urls)
     {
@@ -153,12 +195,22 @@ void MainWindow::dropEvent(QDropEvent *event)
             if (ext == "mp4" || ext == "mkv" || ext == "avi" || ext == "mov" || ext == "flv" || ext == "wmv")
             {
                 processVideos(localPath, true); // Process single video file
+                processedFiles++;
             }
         }
         else if (info.isDir())
         {
             processVideos(localPath, false); // Process entire folder recursively
+            processedFolders++;
         }
+    }
+
+    if (processedFiles > 0 || processedFolders > 0)
+    {
+        ui->statusbar->showMessage(QString("Added %1 files and %2 folders to library")
+                                       .arg(processedFiles)
+                                       .arg(processedFolders),
+                                   3000);
     }
 }
 
@@ -227,14 +279,86 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
         ui->tableWidget->setItem(row, 8, new QTableWidgetItem(audioLanguage));
 
         QPushButton *openButton = new QPushButton("Open");
+        // Try to load custom icon, fallback to Qt standard icon
+        QIcon openIcon("icons/open.png");
+        if (openIcon.isNull()) {
+            openIcon = style()->standardIcon(QStyle::SP_MediaPlay);
+        }
+        openButton->setIcon(openIcon);
+        openButton->setIconSize(QSize(16, 16));
+        openButton->setStyleSheet(
+            "QPushButton {"
+            "    background-color: #2e7d32;"
+            "    color: white;"
+            "    border: none;"
+            "    padding: 6px 12px;"
+            "    border-radius: 4px;"
+            "    font-size: 11px;"
+            "    font-weight: bold;"
+            "    min-width: 60px;"
+            "}"
+            "QPushButton:hover {"
+            "    background-color: #388e3c;"
+            "}"
+            "QPushButton:pressed {"
+            "    background-color: #1b5e20;"
+            "}");
         connect(openButton, &QPushButton::clicked, this, [filePath]()
                 { QDesktopServices::openUrl(QUrl::fromLocalFile(filePath)); });
 
         QPushButton *imdbButton = new QPushButton("IMDb");
+        // Try to load custom icon, fallback to Qt standard icon
+        QIcon imdbIcon("icons/imdb.png");
+        if (imdbIcon.isNull()) {
+            imdbIcon = style()->standardIcon(QStyle::SP_ComputerIcon);
+        }
+        imdbButton->setIcon(imdbIcon);
+        imdbButton->setIconSize(QSize(16, 16));
+        imdbButton->setStyleSheet(
+            "QPushButton {"
+            "    background-color: #f57c00;"
+            "    color: white;"
+            "    border: none;"
+            "    padding: 6px 12px;"
+            "    border-radius: 4px;"
+            "    font-size: 11px;"
+            "    font-weight: bold;"
+            "    min-width: 60px;"
+            "}"
+            "QPushButton:hover {"
+            "    background-color: #ff8f00;"
+            "}"
+            "QPushButton:pressed {"
+            "    background-color: #e65100;"
+            "}");
         connect(imdbButton, &QPushButton::clicked, this, [this, title, year]()
                 { openImdbPage(title, year); });
 
         QPushButton *paheButton = new QPushButton("Pahe");
+        // Try to load custom icon, fallback to Qt standard icon
+        QIcon paheIcon("icons/pahe.png");
+        if (paheIcon.isNull()) {
+            paheIcon = style()->standardIcon(QStyle::SP_ComputerIcon);
+        }
+        paheButton->setIcon(paheIcon);
+        paheButton->setIconSize(QSize(16, 16));
+        paheButton->setStyleSheet(
+            "QPushButton {"
+            "    background-color: #1976d2;"
+            "    color: white;"
+            "    border: none;"
+            "    padding: 6px 12px;"
+            "    border-radius: 4px;"
+            "    font-size: 11px;"
+            "    font-weight: bold;"
+            "    min-width: 60px;"
+            "}"
+            "QPushButton:hover {"
+            "    background-color: #1565c0;"
+            "}"
+            "QPushButton:pressed {"
+            "    background-color: #0d47a1;"
+            "}");
         connect(paheButton, &QPushButton::clicked, this, [this, title, year]()
                 { openPahePage(title, year); });
 
@@ -243,7 +367,8 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
         layout->addWidget(openButton);
         layout->addWidget(imdbButton);
         layout->addWidget(paheButton);
-        layout->setContentsMargins(0, 0, 0, 0);
+        layout->setContentsMargins(4, 2, 4, 2);
+        layout->setSpacing(4);
         ui->tableWidget->setCellWidget(row, 9, buttonsWidget);
     }
 
@@ -253,6 +378,13 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
 
     ui->tableWidget->resizeColumnsToContents();
     ui->tableWidget->resizeRowsToContents();
+
+    // Update status bar with processing results
+    int totalFiles = filesToProcess.size();
+    ui->statusbar->showMessage(QString("Processed %1 video files. Total movies in library: %2")
+                                   .arg(totalFiles)
+                                   .arg(ui->tableWidget->rowCount()),
+                               5000);
 }
 
 // ===================== Utility Functions =====================
@@ -1041,4 +1173,16 @@ void MainWindow::updateHeaderLabels()
                                 "Actions", "Rated", "Rating", "Votes", "Director", "Actors", "Writers", "Awards", "Language", "Country", "Box Office", "Plot", "Genre"};
 
     ui->tableWidget->setHorizontalHeaderLabels(headerLabels);
+}
+
+void MainWindow::loadExternalStylesheet()
+{
+    QFile styleFile("styles.qss");
+    if (styleFile.open(QFile::ReadOnly | QFile::Text))
+    {
+        QTextStream styleStream(&styleFile);
+        QString style = styleStream.readAll();
+        styleFile.close();
+        this->setStyleSheet(style);
+    }
 }

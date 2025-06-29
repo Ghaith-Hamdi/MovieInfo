@@ -95,6 +95,7 @@ private:
     void onSelectFolderClicked();
     void processVideos(const QString &path, bool isSingleFile);
     void processVideos(const QStringList &filePaths);
+    void loadExternalStylesheet();
 };
 
 #endif // MAINWINDOW_H
