@@ -15,281 +15,333 @@
 		</property>
 		<property name="styleSheet">
 			<string notr="true">QMainWindow {
-    background-color: #1e1e1e;
-    font-family: "Segoe UI", "Roboto", sans-serif;
+    background-color: #0f0f0f;
+    font-family: "Inter", "Segoe UI", "Roboto", sans-serif;
     font-size: 14px;
-    color: #e0e0e0;
+    color: #e5e5e5;
 }
 
 /* --- Table Styling --- */
 QTableWidget {
-    background-color: #2a2a2a;
-    border: none;
-    border-radius: 10px;
+    background-color: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
     gridline-color: transparent;
-    selection-background-color: #3c5a96;
-    alternate-background-color: #242424;
-    color: #e0e0e0;
+    selection-background-color: #4a7cf5;
+    alternate-background-color: #161616;
+    color: #e5e5e5;
+    padding: 4px;
 }
 
 QTableWidget::item {
-    padding: 10px;
-    border-bottom: 1px solid #333;
+    padding: 14px 12px;
+    border-bottom: 1px solid #252525;
 }
 
 QTableWidget::item:selected {
-    background-color: #3c5a96;
+    background-color: #4a7cf5;
     color: #ffffff;
 }
 
 QTableWidget::item:hover {
-    background-color: #383838;
+    background-color: #222222;
 }
 
 /* --- Headers --- */
 QHeaderView::section {
-    background-color: #1a1a1a;
+    background-color: #141414;
     color: #ffffff;
-    padding: 10px;
-    font-weight: bold;
+    padding: 14px 12px;
+    font-weight: 600;
     font-size: 13px;
     border: none;
-    border-bottom: 1px solid #404040;
+    border-bottom: 2px solid #4a7cf5;
+    letter-spacing: 0.3px;
 }
 
 QHeaderView::section:hover {
-    background-color: #2a2a2a;
+    background-color: #1c1c1c;
 }
 
 /* --- Buttons --- */
 QPushButton {
-    background-color: #3c5a96;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #4a7cf5, stop:1 #3d6ad9);
     color: white;
     border: none;
-    padding: 10px 22px;
-    border-radius: 8px;
-    font-weight: bold;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 600;
     font-size: 13px;
+    letter-spacing: 0.3px;
 }
 
 QPushButton:hover {
-    background-color: #4a6ba8;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #5a8cff, stop:1 #4a7cf5);
 }
 
 QPushButton:pressed {
-    background-color: #2d4a7a;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #3d6ad9, stop:1 #2d5ac9);
+    padding: 13px 23px 11px 25px;
 }
 
 QPushButton:disabled {
-    background-color: #404040;
-    color: #808080;
+    background: #2a2a2a;
+    color: #666666;
 }
 
 /* --- LineEdit (Search Bar) --- */
 QLineEdit {
-    padding: 10px 14px;
-    border: 2px solid #404040;
-    border-radius: 8px;
+    padding: 12px 16px;
+    border: 2px solid #2a2a2a;
+    border-radius: 10px;
     font-size: 14px;
-    background-color: #2d2d2d;
-    color: #e0e0e0;
+    background-color: #1a1a1a;
+    color: #e5e5e5;
+    selection-background-color: #4a7cf5;
 }
 
 QLineEdit:focus {
-    border-color: #3c5a96;
+    border-color: #4a7cf5;
+    background-color: #1f1f1f;
 }
 
 QLineEdit::placeholder {
-    color: #808080;
-    font-style: italic;
+    color: #666666;
+    font-style: normal;
 }
 
 /* --- ComboBox --- */
 QComboBox {
-    padding: 8px 12px;
-    border: 2px solid #404040;
-    border-radius: 8px;
-    background-color: #2d2d2d;
+    padding: 10px 14px;
+    border: 2px solid #2a2a2a;
+    border-radius: 10px;
+    background-color: #1a1a1a;
     font-size: 13px;
-    color: #e0e0e0;
+    color: #e5e5e5;
+    min-height: 20px;
+}
+
+QComboBox:hover {
+    border-color: #3a3a3a;
+    background-color: #1f1f1f;
 }
 
 QComboBox:focus {
-    border-color: #3c5a96;
+    border-color: #4a7cf5;
 }
 
 QComboBox::drop-down {
     border: none;
-    width: 20px;
+    width: 30px;
+    padding-right: 8px;
 }
 
 QComboBox::down-arrow {
     image: none;
     border-left: 5px solid transparent;
     border-right: 5px solid transparent;
-    border-top: 5px solid #808080;
+    border-top: 6px solid #888888;
     margin-right: 6px;
 }
 
+QComboBox:hover::down-arrow {
+    border-top-color: #aaaaaa;
+}
+
 QComboBox QAbstractItemView {
-    background-color: #2d2d2d;
-    border: 2px solid #3c5a96;
+    background-color: #1a1a1a;
+    border: 2px solid #4a7cf5;
+    border-radius: 8px;
+    color: #e5e5e5;
+    selection-background-color: #4a7cf5;
+    outline: none;
+    padding: 4px;
+}
+
+QComboBox QAbstractItemView::item {
+    padding: 8px 12px;
     border-radius: 6px;
-    color: #e0e0e0;
-    selection-background-color: #3c5a96;
+    margin: 2px;
+}
+
+QComboBox QAbstractItemView::item:hover {
+    background-color: #2a2a2a;
 }
 
 /* --- GroupBox --- */
 QGroupBox {
-    border: none;
-    margin-top: 15px;
-    padding: 12px;
-    background-color: #242424;
-    border-radius: 12px;
+    border: 1px solid #2a2a2a;
+    margin-top: 24px;
+    padding: 20px 16px 16px 16px;
+    background-color: #141414;
+    border-radius: 14px;
     font-size: 14px;
-    color: #e0e0e0;
+    color: #e5e5e5;
 }
 
 QGroupBox::title {
     subcontrol-origin: margin;
-    left: 12px;
-    padding: 0 6px;
-    font-weight: bold;
-    font-size: 14px;
-    color: #4a7ad7;
+    left: 16px;
+    top: 8px;
+    padding: 0 8px;
+    font-weight: 700;
+    font-size: 15px;
+    color: #4a7cf5;
+    letter-spacing: 0.5px;
+    background-color: #141414;
 }
 
 /* --- Labels --- */
 QLabel {
-    color: #e0e0e0;
+    color: #c0c0c0;
     font-size: 13px;
+    font-weight: 500;
 }
 
 /* --- Status Bar --- */
 QStatusBar {
-    background-color: #1a1a1a;
-    border-top: 1px solid #404040;
-    color: #aaaaaa;
+    background-color: #0a0a0a;
+    border-top: 1px solid #2a2a2a;
+    color: #888888;
     font-size: 12px;
+    padding: 6px 12px;
+}
+
+QStatusBar::item {
+    border: none;
 }
 
 /* --- Toolbar --- */
 QToolBar {
-    background-color: #1a1a1a;
-    border-bottom: 1px solid #404040;
-    spacing: 6px;
-    padding: 6px 12px;
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                stop:0 #141414, stop:1 #0f0f0f);
+    border-bottom: 1px solid #2a2a2a;
+    spacing: 8px;
+    padding: 8px 16px;
 }
 
 QToolBar QToolButton {
     background-color: transparent;
     border: 1px solid transparent;
-    border-radius: 6px;
-    padding: 6px 10px;
+    border-radius: 8px;
+    padding: 8px 14px;
     margin: 2px;
-    color: #e0e0e0;
+    color: #e5e5e5;
     font-size: 13px;
+    font-weight: 500;
 }
 
 QToolBar QToolButton:hover {
-    background-color: #3c5a96;
-    border-color: #3c5a96;
+    background-color: #4a7cf5;
+    border-color: #4a7cf5;
+}
+
+QToolBar QToolButton:pressed {
+    background-color: #3d6ad9;
 }
 
 /* --- Scrollbars --- */
 QScrollBar:vertical {
-    background-color: #1a1a1a;
-    width: 12px;
-    border-radius: 6px;
+    background-color: #0f0f0f;
+    width: 14px;
+    border-radius: 7px;
+    margin: 2px;
 }
 
 QScrollBar::handle:vertical {
-    background-color: #404040;
-    border-radius: 6px;
-    min-height: 20px;
+    background-color: #3a3a3a;
+    border-radius: 7px;
+    min-height: 30px;
 }
 
 QScrollBar::handle:vertical:hover {
-    background-color: #505050;
+    background-color: #4a4a4a;
+}
+
+QScrollBar::handle:vertical:pressed {
+    background-color: #4a7cf5;
 }
 
 QScrollBar:horizontal {
-    background-color: #1a1a1a;
-    height: 12px;
-    border-radius: 6px;
+    background-color: #0f0f0f;
+    height: 14px;
+    border-radius: 7px;
+    margin: 2px;
 }
 
 QScrollBar::handle:horizontal {
-    background-color: #404040;
-    border-radius: 6px;
-    min-width: 20px;
+    background-color: #3a3a3a;
+    border-radius: 7px;
+    min-width: 30px;
 }
 
 QScrollBar::handle:horizontal:hover {
-    background-color: #505050;
+    background-color: #4a4a4a;
 }
 
+QScrollBar::handle:horizontal:pressed {
+    background-color: #4a7cf5;
+}
+
+QScrollBar::add-line, QScrollBar::sub-line {
+    height: 0px;
+    width: 0px;
+}
+
+/* --- Tooltips --- */
+QToolTip {
+    background-color: #1a1a1a;
+    color: #e5e5e5;
+    border: 1px solid #4a7cf5;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+}
 </string>
 		</property>
 		<widget class="QWidget" name="centralwidget">
 			<layout class="QVBoxLayout" name="verticalLayout_3">
 				<property name="spacing">
-					<number>10</number>
+					<number>16</number>
 				</property>
 				<property name="leftMargin">
-					<number>15</number>
+					<number>20</number>
 				</property>
 				<property name="topMargin">
-					<number>15</number>
+					<number>20</number>
 				</property>
 				<property name="rightMargin">
-					<number>15</number>
+					<number>20</number>
 				</property>
 				<property name="bottomMargin">
-					<number>15</number>
+					<number>20</number>
 				</property>
-				<item>
-					<widget class="QGroupBox" name="tableGroupBox">
-						<property name="title">
-							<string>Video Library</string>
-						</property>
-						<layout class="QVBoxLayout" name="tableLayout">
-							<item>
-								<widget class="QTableWidget" name="tableWidget">
-									<property name="sizeAdjustPolicy">
-										<enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents</enum>
-									</property>
-									<property name="alternatingRowColors">
-										<bool>true</bool>
-									</property>
-									<property name="selectionBehavior">
-										<enum>QAbstractItemView::SelectRows</enum>
-									</property>
-								</widget>
-							</item>
-						</layout>
-					</widget>
-				</item>
 				<item>
 					<widget class="QGroupBox" name="searchGroupBox">
 						<property name="title">
-							<string>Search &amp; Filter</string>
+							<string>🔍 Search &amp; Filter</string>
 						</property>
 						<layout class="QVBoxLayout" name="searchLayout">
 							<property name="spacing">
-								<number>10</number>
+								<number>14</number>
 							</property>
 							<item>
 								<widget class="QLineEdit" name="searchLineEdit">
 									<property name="placeholderText">
-										<string>Search movies by title...</string>
+										<string>🔎 Search by title, genre, or actor...</string>
+									</property>
+									<property name="toolTip">
+										<string>Type to filter your movie collection</string>
 									</property>
 								</widget>
 							</item>
 							<item>
 								<layout class="QHBoxLayout" name="filterLayout">
 									<property name="spacing">
-										<number>10</number>
+										<number>16</number>
 									</property>
 									<item>
 										<widget class="QLabel" name="qualityLabel">
@@ -299,15 +351,24 @@ QScrollBar::handle:horizontal:hover {
 											<property name="alignment">
 												<set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
 											</property>
+											<property name="minimumSize">
+												<size>
+													<width>90</width>
+													<height>0</height>
+												</size>
+											</property>
 										</widget>
 									</item>
 									<item>
 										<widget class="QComboBox" name="comboBoxQuality">
 											<property name="minimumSize">
 												<size>
-													<width>120</width>
+													<width>140</width>
 													<height>0</height>
 												</size>
+											</property>
+											<property name="toolTip">
+												<string>Filter by video quality</string>
 											</property>
 										</widget>
 									</item>
@@ -319,15 +380,24 @@ QScrollBar::handle:horizontal:hover {
 											<property name="alignment">
 												<set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
 											</property>
+											<property name="minimumSize">
+												<size>
+													<width>90</width>
+													<height>0</height>
+												</size>
+											</property>
 										</widget>
 									</item>
 									<item>
 										<widget class="QComboBox" name="comboBoxDecade">
 											<property name="minimumSize">
 												<size>
-													<width>120</width>
+													<width>140</width>
 													<height>0</height>
 												</size>
+											</property>
+											<property name="toolTip">
+												<string>Filter by release decade</string>
 											</property>
 										</widget>
 									</item>
@@ -339,15 +409,24 @@ QScrollBar::handle:horizontal:hover {
 											<property name="alignment">
 												<set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
 											</property>
+											<property name="minimumSize">
+												<size>
+													<width>90</width>
+													<height>0</height>
+												</size>
+											</property>
 										</widget>
 									</item>
 									<item>
 										<widget class="QComboBox" name="comboBoxAspectRatio">
 											<property name="minimumSize">
 												<size>
-													<width>120</width>
+													<width>140</width>
 													<height>0</height>
 												</size>
+											</property>
+											<property name="toolTip">
+												<string>Filter by aspect ratio</string>
 											</property>
 										</widget>
 									</item>
@@ -364,7 +443,84 @@ QScrollBar::handle:horizontal:hover {
 											</property>
 										</spacer>
 									</item>
+									<item>
+										<widget class="QPushButton" name="clearFiltersButton">
+											<property name="text">
+												<string>✕ Clear Filters</string>
+											</property>
+											<property name="minimumSize">
+												<size>
+													<width>130</width>
+													<height>0</height>
+												</size>
+											</property>
+											<property name="toolTip">
+												<string>Reset all filters</string>
+											</property>
+										</widget>
+									</item>
 								</layout>
+							</item>
+						</layout>
+					</widget>
+				</item>
+				<item>
+					<widget class="QGroupBox" name="tableGroupBox">
+						<property name="title">
+							<string>📚 Video Library</string>
+						</property>
+						<layout class="QVBoxLayout" name="tableLayout">
+							<property name="spacing">
+								<number>12</number>
+							</property>
+							<item>
+								<layout class="QHBoxLayout" name="tableInfoLayout">
+									<item>
+										<widget class="QLabel" name="countLabel">
+											<property name="text">
+												<string>0 movies</string>
+											</property>
+											<property name="styleSheet">
+												<string notr="true">QLabel { color: #888888; font-size: 12px; }</string>
+											</property>
+										</widget>
+									</item>
+									<item>
+										<spacer name="horizontalSpacer_3">
+											<property name="orientation">
+												<enum>Qt::Horizontal</enum>
+											</property>
+											<property name="sizeHint" stdset="0">
+												<size>
+													<width>40</width>
+													<height>20</height>
+												</size>
+											</property>
+										</spacer>
+									</item>
+								</layout>
+							</item>
+							<item>
+								<widget class="QTableWidget" name="tableWidget">
+									<property name="sizeAdjustPolicy">
+										<enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents</enum>
+									</property>
+									<property name="alternatingRowColors">
+										<bool>true</bool>
+									</property>
+									<property name="selectionBehavior">
+										<enum>QAbstractItemView::SelectRows</enum>
+									</property>
+									<property name="sortingEnabled">
+										<bool>true</bool>
+									</property>
+									<property name="cornerButtonEnabled">
+										<bool>false</bool>
+									</property>
+									<property name="showGrid">
+										<bool>false</bool>
+									</property>
+								</widget>
 							</item>
 						</layout>
 					</widget>
@@ -372,11 +528,11 @@ QScrollBar::handle:horizontal:hover {
 				<item>
 					<widget class="QGroupBox" name="actionsGroupBox">
 						<property name="title">
-							<string>Actions</string>
+							<string>⚡ Actions</string>
 						</property>
 						<layout class="QHBoxLayout" name="actionsLayout">
 							<property name="spacing">
-								<number>15</number>
+								<number>16</number>
 							</property>
 							<item>
 								<widget class="QPushButton" name="selectFolderButton">
@@ -385,22 +541,28 @@ QScrollBar::handle:horizontal:hover {
 									</property>
 									<property name="minimumSize">
 										<size>
-											<width>140</width>
-											<height>0</height>
+											<width>150</width>
+											<height>42</height>
 										</size>
+									</property>
+									<property name="toolTip">
+										<string>Choose a folder containing video files</string>
 									</property>
 								</widget>
 							</item>
 							<item>
 								<widget class="QPushButton" name="fetchButton">
 									<property name="text">
-										<string>🔍 Fetch Movie Data</string>
+										<string>🎬 Fetch Movie Data</string>
 									</property>
 									<property name="minimumSize">
 										<size>
-											<width>160</width>
-											<height>0</height>
+											<width>170</width>
+											<height>42</height>
 										</size>
+									</property>
+									<property name="toolTip">
+										<string>Download movie information from online databases</string>
 									</property>
 								</widget>
 							</item>
@@ -411,9 +573,28 @@ QScrollBar::handle:horizontal:hover {
 									</property>
 									<property name="minimumSize">
 										<size>
-											<width>140</width>
-											<height>0</height>
+											<width>150</width>
+											<height>42</height>
 										</size>
+									</property>
+									<property name="toolTip">
+										<string>Export library data to Excel spreadsheet</string>
+									</property>
+								</widget>
+							</item>
+							<item>
+								<widget class="QPushButton" name="refreshButton">
+									<property name="text">
+										<string>🔄 Refresh</string>
+									</property>
+									<property name="minimumSize">
+										<size>
+											<width>120</width>
+											<height>42</height>
+										</size>
+									</property>
+									<property name="toolTip">
+										<string>Reload the movie library</string>
 									</property>
 								</widget>
 							</item>
@@ -435,13 +616,23 @@ QScrollBar::handle:horizontal:hover {
 				</item>
 			</layout>
 		</widget>
-		<widget class="QStatusBar" name="statusbar"/>
+		<widget class="QStatusBar" name="statusbar">
+			<property name="sizeGripEnabled">
+				<bool>true</bool>
+			</property>
+		</widget>
 		<widget class="QToolBar" name="toolBar">
 			<property name="windowTitle">
-				<string>toolBar</string>
+				<string>Main Toolbar</string>
 			</property>
 			<property name="toolButtonStyle">
 				<enum>Qt::ToolButtonTextBesideIcon</enum>
+			</property>
+			<property name="iconSize">
+				<size>
+					<width>20</width>
+					<height>20</height>
+				</size>
 			</property>
 			<attribute name="toolBarArea">
 				<enum>TopToolBarArea</enum>
