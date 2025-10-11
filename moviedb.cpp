@@ -106,6 +106,7 @@ Movie MovieDB::getMovie(const QString &title)
         movie.boxOffice = query.value("boxoffice").toString();
         movie.plot = query.value("plot").toString();
         movie.genre = query.value("genre").toString();
+        movie.imdbID = query.value("imdbid").toString();
     }
 
     return movie;
@@ -151,5 +152,6 @@ QMap<QString, QString> MovieDB::movieToMap(const Movie &movie)
         {"country", movie.country},
         {"boxoffice", movie.boxOffice},
         {"plot", movie.plot},
-        {"genre", movie.genre}};
+        {"genre", movie.genre},
+        {"imdbid", movie.imdbID}};
 }

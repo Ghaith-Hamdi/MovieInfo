@@ -333,8 +333,20 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
             "QPushButton:pressed {"
             "    background-color: #e65100;"
             "}");
-        connect(imdbButton, &QPushButton::clicked, this, [this, title, year]()
-                { openImdbPage(title, year); });
+        // IMDb button: if we have a stored imdbID for this row, open direct title URL
+        connect(imdbButton, &QPushButton::clicked, this, [this, row, title, year]()
+                {
+            QTableWidgetItem *titleItemLocal = ui->tableWidget->item(row, 0);
+            if (titleItemLocal) {
+                QString imdbId = titleItemLocal->data(ImdbIdRole).toString();
+                if (!imdbId.isEmpty()) {
+                    QString url = QString("https://www.imdb.com/title/%1/").arg(imdbId);
+                    QDesktopServices::openUrl(QUrl(url));
+                    return;
+                }
+            }
+            // Fallback to search if no imdbID
+            openImdbPage(title, year); });
 
         QPushButton *paheButton = new QPushButton("Pahe");
         // Try to load custom icon, fallback to Qt standard icon
@@ -838,6 +850,12 @@ void MainWindow::onMovieFetched(const Movie &movie)
 
         if (rowTitle == sanitizedTitle)
         {
+            // store imdbID on the row's title item so the IMDb button can open direct URL
+            QTableWidgetItem *titleItem = ui->tableWidget->item(row, 0);
+            if (titleItem)
+            {
+                titleItem->setData(ImdbIdRole, movie.imdbID);
+            }
             ui->tableWidget->setItem(row, 10, new QTableWidgetItem(movie.rated));
             ui->tableWidget->setItem(row, 11, new QTableWidgetItem(movie.imdbRating));
             ui->tableWidget->setItem(row, 12, new NumericTableWidgetItem(movie.imdbVotes));

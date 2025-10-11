@@ -55,7 +55,8 @@ private:
     // Constants
     enum CustomRoles
     {
-        FilePathRole = Qt::UserRole + 1
+        FilePathRole = Qt::UserRole + 1,
+        ImdbIdRole = Qt::UserRole + 2
     };
 
     // Helpers: ComboBoxes

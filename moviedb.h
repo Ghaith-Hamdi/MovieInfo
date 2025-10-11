@@ -26,7 +26,7 @@ private:
     const QStringList movieFields = {
         "title", "year", "rated", "rating", "votes",
         "runtime", "director", "actors", "writer", "awards",
-        "language", "country", "boxoffice", "plot", "genre"};
+        "language", "country", "boxoffice", "plot", "genre", "imdbid"};
     QMap<QString, QString> movieToMap(const Movie &movie);
 };
 
