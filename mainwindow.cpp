@@ -281,7 +281,8 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
         QPushButton *openButton = new QPushButton("Open");
         // Try to load custom icon, fallback to Qt standard icon
         QIcon openIcon("icons/open.png");
-        if (openIcon.isNull()) {
+        if (openIcon.isNull())
+        {
             openIcon = style()->standardIcon(QStyle::SP_MediaPlay);
         }
         openButton->setIcon(openIcon);
@@ -309,7 +310,8 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
         QPushButton *imdbButton = new QPushButton("IMDb");
         // Try to load custom icon, fallback to Qt standard icon
         QIcon imdbIcon("icons/imdb.png");
-        if (imdbIcon.isNull()) {
+        if (imdbIcon.isNull())
+        {
             imdbIcon = style()->standardIcon(QStyle::SP_ComputerIcon);
         }
         imdbButton->setIcon(imdbIcon);
@@ -337,7 +339,8 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
         QPushButton *paheButton = new QPushButton("Pahe");
         // Try to load custom icon, fallback to Qt standard icon
         QIcon paheIcon("icons/pahe.png");
-        if (paheIcon.isNull()) {
+        if (paheIcon.isNull())
+        {
             paheIcon = style()->standardIcon(QStyle::SP_ComputerIcon);
         }
         paheButton->setIcon(paheIcon);

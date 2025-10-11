@@ -1,37 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>1600</width>
-    <height>1000</height>
-   </rect>
-  </property>
-  <property name="windowTitle">
-   <string>MovieInfo - Video Library Manager</string>
-  </property>
-  <property name="styleSheet">
-   <string notr="true">QMainWindow {
+	<class>MainWindow</class>
+	<widget class="QMainWindow" name="MainWindow">
+		<property name="geometry">
+			<rect>
+				<x>0</x>
+				<y>0</y>
+				<width>1600</width>
+				<height>1000</height>
+			</rect>
+		</property>
+		<property name="windowTitle">
+			<string>MovieInfo - Video Library Manager</string>
+		</property>
+		<property name="styleSheet">
+			<string notr="true">QMainWindow {
     background-color: #1e1e1e;
+    font-family: "Segoe UI", "Roboto", sans-serif;
+    font-size: 14px;
+    color: #e0e0e0;
 }
 
+/* --- Table Styling --- */
 QTableWidget {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    border-radius: 8px;
-    gridline-color: #404040;
+    background-color: #2a2a2a;
+    border: none;
+    border-radius: 10px;
+    gridline-color: transparent;
     selection-background-color: #3c5a96;
-    alternate-background-color: #252525;
+    alternate-background-color: #242424;
     color: #e0e0e0;
 }
 
 QTableWidget::item {
-    padding: 8px;
-    border-bottom: 1px solid #404040;
-    color: #e0e0e0;
+    padding: 10px;
+    border-bottom: 1px solid #333;
 }
 
 QTableWidget::item:selected {
@@ -39,13 +42,18 @@ QTableWidget::item:selected {
     color: #ffffff;
 }
 
+QTableWidget::item:hover {
+    background-color: #383838;
+}
+
+/* --- Headers --- */
 QHeaderView::section {
     background-color: #1a1a1a;
     color: #ffffff;
-    padding: 12px 8px;
-    border: none;
+    padding: 10px;
     font-weight: bold;
-    font-size: 12px;
+    font-size: 13px;
+    border: none;
     border-bottom: 1px solid #404040;
 }
 
@@ -53,15 +61,15 @@ QHeaderView::section:hover {
     background-color: #2a2a2a;
 }
 
+/* --- Buttons --- */
 QPushButton {
     background-color: #3c5a96;
     color: white;
     border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
+    padding: 10px 22px;
+    border-radius: 8px;
     font-weight: bold;
-    font-size: 12px;
-    min-height: 20px;
+    font-size: 13px;
 }
 
 QPushButton:hover {
@@ -77,10 +85,11 @@ QPushButton:disabled {
     color: #808080;
 }
 
+/* --- LineEdit (Search Bar) --- */
 QLineEdit {
-    padding: 10px;
+    padding: 10px 14px;
     border: 2px solid #404040;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 14px;
     background-color: #2d2d2d;
     color: #e0e0e0;
@@ -88,20 +97,20 @@ QLineEdit {
 
 QLineEdit:focus {
     border-color: #3c5a96;
-    outline: none;
 }
 
 QLineEdit::placeholder {
     color: #808080;
+    font-style: italic;
 }
 
+/* --- ComboBox --- */
 QComboBox {
     padding: 8px 12px;
     border: 2px solid #404040;
-    border-radius: 6px;
+    border-radius: 8px;
     background-color: #2d2d2d;
-    font-size: 12px;
-    min-height: 20px;
+    font-size: 13px;
     color: #e0e0e0;
 }
 
@@ -119,7 +128,7 @@ QComboBox::down-arrow {
     border-left: 5px solid transparent;
     border-right: 5px solid transparent;
     border-top: 5px solid #808080;
-    margin-right: 5px;
+    margin-right: 6px;
 }
 
 QComboBox QAbstractItemView {
@@ -128,50 +137,58 @@ QComboBox QAbstractItemView {
     border-radius: 6px;
     color: #e0e0e0;
     selection-background-color: #3c5a96;
-    selection-color: #ffffff;
 }
 
+/* --- GroupBox --- */
 QGroupBox {
-    font-weight: bold;
-    border: 2px solid #404040;
-    border-radius: 8px;
-    margin-top: 10px;
-    padding-top: 10px;
-    background-color: #2d2d2d;
+    border: none;
+    margin-top: 15px;
+    padding: 12px;
+    background-color: #242424;
+    border-radius: 12px;
+    font-size: 14px;
     color: #e0e0e0;
 }
 
 QGroupBox::title {
     subcontrol-origin: margin;
-    left: 10px;
-    padding: 0 8px 0 8px;
-    color: #3c5a96;
+    left: 12px;
+    padding: 0 6px;
+    font-weight: bold;
+    font-size: 14px;
+    color: #4a7ad7;
 }
 
+/* --- Labels --- */
 QLabel {
     color: #e0e0e0;
+    font-size: 13px;
 }
 
+/* --- Status Bar --- */
 QStatusBar {
     background-color: #1a1a1a;
     border-top: 1px solid #404040;
-    color: #e0e0e0;
+    color: #aaaaaa;
+    font-size: 12px;
 }
 
+/* --- Toolbar --- */
 QToolBar {
     background-color: #1a1a1a;
     border-bottom: 1px solid #404040;
-    spacing: 5px;
-    padding: 5px;
+    spacing: 6px;
+    padding: 6px 12px;
 }
 
 QToolBar QToolButton {
     background-color: transparent;
     border: 1px solid transparent;
-    border-radius: 4px;
-    padding: 6px;
+    border-radius: 6px;
+    padding: 6px 10px;
     margin: 2px;
     color: #e0e0e0;
+    font-size: 13px;
 }
 
 QToolBar QToolButton:hover {
@@ -179,6 +196,7 @@ QToolBar QToolButton:hover {
     border-color: #3c5a96;
 }
 
+/* --- Scrollbars --- */
 QScrollBar:vertical {
     background-color: #1a1a1a;
     width: 12px;
@@ -209,228 +227,230 @@ QScrollBar::handle:horizontal {
 
 QScrollBar::handle:horizontal:hover {
     background-color: #505050;
-}</string>
-  </property>
-  <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="verticalLayout_3">
-    <property name="spacing">
-     <number>10</number>
-    </property>
-    <property name="leftMargin">
-     <number>15</number>
-    </property>
-    <property name="topMargin">
-     <number>15</number>
-    </property>
-    <property name="rightMargin">
-     <number>15</number>
-    </property>
-    <property name="bottomMargin">
-     <number>15</number>
-    </property>
-    <item>
-     <widget class="QGroupBox" name="tableGroupBox">
-      <property name="title">
-       <string>Video Library</string>
-      </property>
-      <layout class="QVBoxLayout" name="tableLayout">
-       <item>
-        <widget class="QTableWidget" name="tableWidget">
-         <property name="sizeAdjustPolicy">
-          <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents</enum>
-         </property>
-         <property name="alternatingRowColors">
-          <bool>true</bool>
-         </property>
-         <property name="selectionBehavior">
-          <enum>QAbstractItemView::SelectRows</enum>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item>
-     <widget class="QGroupBox" name="searchGroupBox">
-      <property name="title">
-       <string>Search &amp; Filter</string>
-      </property>
-      <layout class="QVBoxLayout" name="searchLayout">
-       <property name="spacing">
-        <number>10</number>
-       </property>
-       <item>
-        <widget class="QLineEdit" name="searchLineEdit">
-         <property name="placeholderText">
-          <string>Search movies by title...</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="filterLayout">
-         <property name="spacing">
-          <number>10</number>
-         </property>
-         <item>
-          <widget class="QLabel" name="qualityLabel">
-           <property name="text">
-            <string>Quality:</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QComboBox" name="comboBoxQuality">
-           <property name="minimumSize">
-            <size>
-             <width>120</width>
-             <height>0</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="decadeLabel">
-           <property name="text">
-            <string>Decade:</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QComboBox" name="comboBoxDecade">
-           <property name="minimumSize">
-            <size>
-             <width>120</width>
-             <height>0</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="aspectLabel">
-           <property name="text">
-            <string>Aspect Ratio:</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QComboBox" name="comboBoxAspectRatio">
-           <property name="minimumSize">
-            <size>
-             <width>120</width>
-             <height>0</height>
-            </size>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
-       </item>
-      </layout>
-     </widget>
-    </item>
-    <item>
-     <widget class="QGroupBox" name="actionsGroupBox">
-      <property name="title">
-       <string>Actions</string>
-      </property>
-      <layout class="QHBoxLayout" name="actionsLayout">
-       <property name="spacing">
-        <number>15</number>
-       </property>
-       <item>
-        <widget class="QPushButton" name="selectFolderButton">
-         <property name="text">
-          <string>📁 Select Folder</string>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>140</width>
-           <height>0</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="fetchButton">
-         <property name="text">
-          <string>🔍 Fetch Movie Data</string>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>160</width>
-           <height>0</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="exportButton">
-         <property name="text">
-          <string>📊 Export to Excel</string>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>140</width>
-           <height>0</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
-     </widget>
-    </item>
-   </layout>
-  </widget>
-  <widget class="QStatusBar" name="statusbar"/>
-  <widget class="QToolBar" name="toolBar">
-   <property name="windowTitle">
-    <string>toolBar</string>
-   </property>
-   <property name="toolButtonStyle">
-    <enum>Qt::ToolButtonTextBesideIcon</enum>
-   </property>
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-  </widget>
- </widget>
- <resources/>
- <connections/>
+}
+
+</string>
+		</property>
+		<widget class="QWidget" name="centralwidget">
+			<layout class="QVBoxLayout" name="verticalLayout_3">
+				<property name="spacing">
+					<number>10</number>
+				</property>
+				<property name="leftMargin">
+					<number>15</number>
+				</property>
+				<property name="topMargin">
+					<number>15</number>
+				</property>
+				<property name="rightMargin">
+					<number>15</number>
+				</property>
+				<property name="bottomMargin">
+					<number>15</number>
+				</property>
+				<item>
+					<widget class="QGroupBox" name="tableGroupBox">
+						<property name="title">
+							<string>Video Library</string>
+						</property>
+						<layout class="QVBoxLayout" name="tableLayout">
+							<item>
+								<widget class="QTableWidget" name="tableWidget">
+									<property name="sizeAdjustPolicy">
+										<enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents</enum>
+									</property>
+									<property name="alternatingRowColors">
+										<bool>true</bool>
+									</property>
+									<property name="selectionBehavior">
+										<enum>QAbstractItemView::SelectRows</enum>
+									</property>
+								</widget>
+							</item>
+						</layout>
+					</widget>
+				</item>
+				<item>
+					<widget class="QGroupBox" name="searchGroupBox">
+						<property name="title">
+							<string>Search &amp; Filter</string>
+						</property>
+						<layout class="QVBoxLayout" name="searchLayout">
+							<property name="spacing">
+								<number>10</number>
+							</property>
+							<item>
+								<widget class="QLineEdit" name="searchLineEdit">
+									<property name="placeholderText">
+										<string>Search movies by title...</string>
+									</property>
+								</widget>
+							</item>
+							<item>
+								<layout class="QHBoxLayout" name="filterLayout">
+									<property name="spacing">
+										<number>10</number>
+									</property>
+									<item>
+										<widget class="QLabel" name="qualityLabel">
+											<property name="text">
+												<string>Quality:</string>
+											</property>
+											<property name="alignment">
+												<set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+											</property>
+										</widget>
+									</item>
+									<item>
+										<widget class="QComboBox" name="comboBoxQuality">
+											<property name="minimumSize">
+												<size>
+													<width>120</width>
+													<height>0</height>
+												</size>
+											</property>
+										</widget>
+									</item>
+									<item>
+										<widget class="QLabel" name="decadeLabel">
+											<property name="text">
+												<string>Decade:</string>
+											</property>
+											<property name="alignment">
+												<set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+											</property>
+										</widget>
+									</item>
+									<item>
+										<widget class="QComboBox" name="comboBoxDecade">
+											<property name="minimumSize">
+												<size>
+													<width>120</width>
+													<height>0</height>
+												</size>
+											</property>
+										</widget>
+									</item>
+									<item>
+										<widget class="QLabel" name="aspectLabel">
+											<property name="text">
+												<string>Aspect Ratio:</string>
+											</property>
+											<property name="alignment">
+												<set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+											</property>
+										</widget>
+									</item>
+									<item>
+										<widget class="QComboBox" name="comboBoxAspectRatio">
+											<property name="minimumSize">
+												<size>
+													<width>120</width>
+													<height>0</height>
+												</size>
+											</property>
+										</widget>
+									</item>
+									<item>
+										<spacer name="horizontalSpacer">
+											<property name="orientation">
+												<enum>Qt::Horizontal</enum>
+											</property>
+											<property name="sizeHint" stdset="0">
+												<size>
+													<width>40</width>
+													<height>20</height>
+												</size>
+											</property>
+										</spacer>
+									</item>
+								</layout>
+							</item>
+						</layout>
+					</widget>
+				</item>
+				<item>
+					<widget class="QGroupBox" name="actionsGroupBox">
+						<property name="title">
+							<string>Actions</string>
+						</property>
+						<layout class="QHBoxLayout" name="actionsLayout">
+							<property name="spacing">
+								<number>15</number>
+							</property>
+							<item>
+								<widget class="QPushButton" name="selectFolderButton">
+									<property name="text">
+										<string>📁 Select Folder</string>
+									</property>
+									<property name="minimumSize">
+										<size>
+											<width>140</width>
+											<height>0</height>
+										</size>
+									</property>
+								</widget>
+							</item>
+							<item>
+								<widget class="QPushButton" name="fetchButton">
+									<property name="text">
+										<string>🔍 Fetch Movie Data</string>
+									</property>
+									<property name="minimumSize">
+										<size>
+											<width>160</width>
+											<height>0</height>
+										</size>
+									</property>
+								</widget>
+							</item>
+							<item>
+								<widget class="QPushButton" name="exportButton">
+									<property name="text">
+										<string>📊 Export to Excel</string>
+									</property>
+									<property name="minimumSize">
+										<size>
+											<width>140</width>
+											<height>0</height>
+										</size>
+									</property>
+								</widget>
+							</item>
+							<item>
+								<spacer name="horizontalSpacer_2">
+									<property name="orientation">
+										<enum>Qt::Horizontal</enum>
+									</property>
+									<property name="sizeHint" stdset="0">
+										<size>
+											<width>40</width>
+											<height>20</height>
+										</size>
+									</property>
+								</spacer>
+							</item>
+						</layout>
+					</widget>
+				</item>
+			</layout>
+		</widget>
+		<widget class="QStatusBar" name="statusbar"/>
+		<widget class="QToolBar" name="toolBar">
+			<property name="windowTitle">
+				<string>toolBar</string>
+			</property>
+			<property name="toolButtonStyle">
+				<enum>Qt::ToolButtonTextBesideIcon</enum>
+			</property>
+			<attribute name="toolBarArea">
+				<enum>TopToolBarArea</enum>
+			</attribute>
+			<attribute name="toolBarBreak">
+				<bool>false</bool>
+			</attribute>
+		</widget>
+	</widget>
+	<resources/>
+	<connections/>
 </ui>
