@@ -316,6 +316,8 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
         }
         imdbButton->setIcon(imdbIcon);
         imdbButton->setIconSize(QSize(16, 16));
+        imdbButton->setObjectName("imdbButton");
+        imdbButton->setToolTip("Search on IMDb");
         imdbButton->setStyleSheet(
             "QPushButton {"
             "    background-color: #f57c00;"
@@ -333,19 +335,31 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
             "QPushButton:pressed {"
             "    background-color: #e65100;"
             "}");
-        // IMDb button: if we have a stored imdbID for this row, open direct title URL
-        connect(imdbButton, &QPushButton::clicked, this, [this, row, title, year]()
+        // IMDb button: determine the clicked row dynamically so sorting/reordering doesn't break mapping
+        connect(imdbButton, &QPushButton::clicked, this, [this, title, year]()
                 {
-            QTableWidgetItem *titleItemLocal = ui->tableWidget->item(row, 0);
-            if (titleItemLocal) {
-                QString imdbId = titleItemLocal->data(ImdbIdRole).toString();
-                if (!imdbId.isEmpty()) {
-                    QString url = QString("https://www.imdb.com/title/%1/").arg(imdbId);
-                    QDesktopServices::openUrl(QUrl(url));
-                    return;
+            QPushButton *btn = qobject_cast<QPushButton *>(sender());
+            if (!btn) { openImdbPage(title, year); return; }
+
+            // Map button center into the table viewport to find the index
+            QPoint center(btn->width()/2, btn->height()/2);
+            QPoint viewportPos = btn->mapTo(ui->tableWidget->viewport(), center);
+            QModelIndex idx = ui->tableWidget->indexAt(viewportPos);
+            int clickedRow = idx.isValid() ? idx.row() : -1;
+
+            if (clickedRow >= 0) {
+                QTableWidgetItem *titleItemLocal = ui->tableWidget->item(clickedRow, 0);
+                if (titleItemLocal) {
+                    QString imdbId = titleItemLocal->data(ImdbIdRole).toString();
+                    if (!imdbId.isEmpty()) {
+                        QString url = QString("https://www.imdb.com/title/%1/").arg(imdbId);
+                        QDesktopServices::openUrl(QUrl(url));
+                        return;
+                    }
                 }
             }
-            // Fallback to search if no imdbID
+
+            // Fallback to IMDb search
             openImdbPage(title, year); });
 
         QPushButton *paheButton = new QPushButton("Pahe");
@@ -855,6 +869,15 @@ void MainWindow::onMovieFetched(const Movie &movie)
             if (titleItem)
             {
                 titleItem->setData(ImdbIdRole, movie.imdbID);
+                // Update the IMDb button tooltip in the Actions cell if present
+                QWidget *actionsWidget = ui->tableWidget->cellWidget(row, 9);
+                if (actionsWidget)
+                {
+                    // find child QPushButton with objectName imdbButton
+                    QPushButton *btn = actionsWidget->findChild<QPushButton *>("imdbButton");
+                    if (btn)
+                        btn->setToolTip(movie.imdbID.isEmpty() ? "Search on IMDb" : "Open IMDb page");
+                }
             }
             ui->tableWidget->setItem(row, 10, new QTableWidgetItem(movie.rated));
             ui->tableWidget->setItem(row, 11, new QTableWidgetItem(movie.imdbRating));
