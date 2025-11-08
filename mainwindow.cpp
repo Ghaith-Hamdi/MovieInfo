@@ -13,6 +13,11 @@
 #include <QMessageBox>
 #include <QProcess>
 #include <QPushButton>
+#include <QDialog>
+#include <QFormLayout>
+#include <QLineEdit>
+#include <QDialogButtonBox>
+#include <QIntValidator>
 #include <QRegularExpression>
 #include <QSet>
 #include <QSettings>
@@ -597,17 +602,58 @@ void MainWindow::showContextMenu(const QPoint &pos)
         const QFileInfo &fileInfo = *fileInfoOpt;
         QDir parentDir = fileInfo.dir();
         QString currentPath = parentDir.absolutePath();
-        QString title = ui->tableWidget->item(index.row(), 0)->text();
-        QString year = ui->tableWidget->item(index.row(), 1)->text();
-        QString suggestedName = QString("%1 (%2)").arg(title, year);
 
-        bool ok;
-        QString newName = QInputDialog::getText(this, "Rename Folder", "Enter new folder name:",
-                                                QLineEdit::Normal, suggestedName, &ok);
+        // Read existing movie title/year from table, fall back to parsing the folder name
+        QString title = "";
+        QString year = "";
+        QTableWidgetItem *titleItem = ui->tableWidget->item(index.row(), 0);
+        QTableWidgetItem *yearItem = ui->tableWidget->item(index.row(), 1);
+        if (titleItem) title = titleItem->text().trimmed();
+        if (yearItem) year = yearItem->text().trimmed();
 
-        if (!ok || newName.trimmed().isEmpty())
+        if (title.isEmpty() || year.isEmpty() || year == "Unknown") {
+            // try parsing the parent folder's name (e.g., "Splitsville (2025)")
+            auto parsed = parseFolderName(parentDir.dirName());
+            if (title.isEmpty()) title = parsed.first;
+            if (year.isEmpty() || year == "Unknown") year = parsed.second;
+        }
+
+        // Build a small dialog with two fields: Movie name and Year
+    QDialog dlg(this);
+    dlg.setWindowTitle("Rename Folder");
+    // Make the dialog a bit wider for comfortable editing
+    dlg.setMinimumWidth(520);
+    QFormLayout form(&dlg);
+
+        QLineEdit *nameEdit = new QLineEdit(title, &dlg);
+        QLineEdit *yearEdit = new QLineEdit(year, &dlg);
+        yearEdit->setValidator(new QIntValidator(1800, 3000, yearEdit));
+        yearEdit->setMaxLength(4);
+
+        form.addRow("Movie name:", nameEdit);
+        form.addRow("Year:", yearEdit);
+
+        QDialogButtonBox *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel,
+                                                         Qt::Horizontal, &dlg);
+        form.addRow(buttons);
+        connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+        connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+
+        if (dlg.exec() != QDialog::Accepted)
             return;
 
+        QString newTitle = nameEdit->text().trimmed();
+        QString newYear = yearEdit->text().trimmed();
+        if (newTitle.isEmpty()) {
+            QMessageBox::warning(this, "Error", "Movie name cannot be empty.");
+            return;
+        }
+
+        QString newName;
+        if (!newYear.isEmpty())
+            newName = QString("%1 (%2)").arg(newTitle, newYear);
+        else
+            newName = newTitle;
         newName = sanitizeForWindowsFolder(newName).replace('\n', ' ').trimmed();
         if (newName.isEmpty()) {
             QMessageBox::warning(this, "Error", "Invalid folder name after sanitization.");
@@ -640,7 +686,37 @@ void MainWindow::showContextMenu(const QPoint &pos)
 
         if (renamed) {
             QString newFilePath = newPathNative + QDir::separator() + fileInfo.fileName();
-            ui->tableWidget->item(index.row(), 0)->setData(FilePathRole, newFilePath);
+            // Update stored file path
+            if (ui->tableWidget->item(index.row(), 0))
+                ui->tableWidget->item(index.row(), 0)->setData(FilePathRole, newFilePath);
+
+            // Update visible UI: title, year and decade
+            if (!newTitle.isEmpty()) {
+                if (ui->tableWidget->item(index.row(), 0))
+                    ui->tableWidget->item(index.row(), 0)->setText(newTitle);
+            }
+            if (ui->tableWidget->item(index.row(), 1))
+                ui->tableWidget->item(index.row(), 1)->setText(newYear);
+            // Update decade (col 2) if year is numeric
+            QString newDecade = getDecade(newYear);
+            if (ui->tableWidget->item(index.row(), 2))
+                ui->tableWidget->item(index.row(), 2)->setText(newDecade);
+
+            // If any combo boxes depend on decades list, refresh them
+            addComboBoxItemIfNotExist(ui->comboBoxDecade, newDecade);
+
+            // After renaming, refresh movie data for this movie and update UI when OMDb returns
+            if (!newTitle.isEmpty()) {
+                int fetchYear = 0;
+                bool ok;
+                int y = newYear.toInt(&ok);
+                if (ok)
+                    fetchYear = y;
+                ui->statusbar->showMessage(QString("Refreshing movie data for %1...").arg(newTitle), 3000);
+                if (omdbClient)
+                    omdbClient->fetchMovie(newTitle, fetchYear);
+            }
+
             QMessageBox::information(this, "Success", "Folder renamed successfully.");
         } else {
             auto error = GetLastError();
