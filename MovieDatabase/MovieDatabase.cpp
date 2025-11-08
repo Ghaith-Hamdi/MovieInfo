@@ -3,6 +3,7 @@
 #include <QSqlError>
 #include <QDebug>
 #include <QCoreApplication>
+#include <QRegularExpression>
 
 MovieDB::MovieDB(QObject *parent)
     : QObject(parent)
@@ -107,6 +108,55 @@ Movie MovieDB::getMovie(const QString &title)
         movie.plot = query.value("plot").toString();
         movie.genre = query.value("genre").toString();
         movie.imdbID = query.value("imdbid").toString();
+    }
+
+    return movie;
+}
+
+Movie MovieDB::getMovieBySanitizedTitle(const QString &sanitizedTitle)
+{
+    Movie movie;
+
+    if (!db.isOpen())
+        return movie;
+
+    // Get all movies and compare sanitized titles
+    QSqlQuery query(db);
+    if (!query.exec("SELECT * FROM movies"))
+        return movie;
+
+    // Regex to remove special characters (same as folder sanitization)
+    QRegularExpression forbidden(R"([\\/:*?"<>|,.])");
+    QString searchTitle = QString(sanitizedTitle).remove(forbidden).simplified();
+
+    while (query.next())
+    {
+        QString dbTitle = query.value("title").toString();
+        QString sanitizedDbTitle = QString(dbTitle).remove(forbidden).simplified();
+
+        if (sanitizedDbTitle.compare(searchTitle, Qt::CaseInsensitive) == 0)
+        {
+            // Found a match!
+            movie.title = dbTitle;
+            movie.year = query.value("year").toString();
+            movie.rated = query.value("rated").toString();
+            movie.imdbRating = query.value("rating").toString();
+            movie.imdbVotes = query.value("votes").toString();
+            movie.runtime = query.value("runtime").toString();
+            movie.director = query.value("director").toString();
+            movie.actors = query.value("actors").toString();
+            movie.writer = query.value("writer").toString();
+            movie.awards = query.value("awards").toString();
+            movie.language = query.value("language").toString();
+            movie.country = query.value("country").toString();
+            movie.boxOffice = query.value("boxoffice").toString();
+            movie.plot = query.value("plot").toString();
+            movie.genre = query.value("genre").toString();
+            movie.imdbID = query.value("imdbid").toString();
+
+            qDebug() << "Found movie by sanitized title match:" << dbTitle << "matches" << sanitizedTitle;
+            break;
+        }
     }
 
     return movie;

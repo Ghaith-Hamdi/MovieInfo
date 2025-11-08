@@ -17,6 +17,7 @@ public:
     bool init();
     bool saveMovie(const Movie &movie);
     Movie getMovie(const QString &title);
+    Movie getMovieBySanitizedTitle(const QString &sanitizedTitle);
     bool movieExists(const QString &title);
     bool deleteMovie(const QString &title);
 

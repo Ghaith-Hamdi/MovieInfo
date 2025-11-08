@@ -8,7 +8,9 @@ SOURCES += \
     MovieDatabase/MovieDatabase.cpp \
     MainWindow/MainWindow.cpp \
     TableColumnManager/TableColumnManager.cpp \
-    MovieDataRefresher/MovieDataRefresher.cpp
+    MovieDataRefresher/MovieDataRefresher.cpp \
+    MoviesToMoveWindow/MoviesToMoveWindow.cpp \
+    SettingsDialog/SettingsDialog.cpp
 
 HEADERS += \
     OmdbClient/OmdbClient.h \
@@ -16,7 +18,9 @@ HEADERS += \
     MainWindow/MainWindow.h \
     Movie/Movie.h \
     TableColumnManager/TableColumnManager.h \
-    MovieDataRefresher/MovieDataRefresher.h
+    MovieDataRefresher/MovieDataRefresher.h \
+    MoviesToMoveWindow/MoviesToMoveWindow.h \
+    SettingsDialog/SettingsDialog.h
 
 FORMS += \
     MainWindow/MainWindow.ui

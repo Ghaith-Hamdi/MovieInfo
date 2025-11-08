@@ -26,6 +26,8 @@
 #include <QTextStream>
 #include <QUrl>
 #include <QInputDialog>
+#include <QLabel>
+#include <QCheckBox>
 #include <windows.h> // For GetLastError()
 #include <QThread>
 #include <QToolBar>
@@ -124,6 +126,103 @@ MainWindow::MainWindow(QWidget *parent)
     columnManager->setupColumnReorderingMenu();
     columnManager->loadSettings();
 
+    // Add drive & year selection controls to toolbar
+    ui->toolBar->addSeparator();
+
+    QLabel *driveLabel = new QLabel(" Drive: ", this);
+    driveLabel->setStyleSheet("QLabel { color: #c9d1d9; font-weight: 600; }");
+    ui->toolBar->addWidget(driveLabel);
+
+    driveComboBox = new QComboBox(this);
+    driveComboBox->addItems({"D:\\", "E:\\"});
+    driveComboBox->setMinimumWidth(80);
+    driveComboBox->setToolTip("Select drive where movies are stored");
+    ui->toolBar->addWidget(driveComboBox);
+
+    QLabel *yearLabel = new QLabel(" Year: ", this);
+    yearLabel->setStyleSheet("QLabel { color: #c9d1d9; font-weight: 600; }");
+    ui->toolBar->addWidget(yearLabel);
+
+    yearLineEdit = new QLineEdit(this);
+    yearLineEdit->setPlaceholderText("e.g., 2023");
+    yearLineEdit->setMaxLength(4);
+    yearLineEdit->setMinimumWidth(100);
+    yearLineEdit->setToolTip("Enter year (e.g., 2023, 1994)");
+    ui->toolBar->addWidget(yearLineEdit);
+
+    fetchByDriveYearButton = new QPushButton("📁 Fetch", this);
+    fetchByDriveYearButton->setToolTip("Fetch movies from selected drive and year");
+    fetchByDriveYearButton->setMinimumWidth(100);
+    ui->toolBar->addWidget(fetchByDriveYearButton);
+
+    ui->toolBar->addSeparator();
+
+    showMoviesToMoveButton = new QPushButton("🔄 Show Movies to Move", this);
+    showMoviesToMoveButton->setToolTip("Show movies that need to be moved to the correct drive");
+    showMoviesToMoveButton->setMinimumWidth(150);
+    showMoviesToMoveButton->setStyleSheet(
+        "QPushButton {"
+        "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #a371f7, stop:1 #8957e5);"
+        "    color: white;"
+        "    border: 1px solid #b392f0;"
+        "    border-radius: 6px;"
+        "    padding: 6px 12px;"
+        "    font-weight: bold;"
+        "}"
+        "QPushButton:hover {"
+        "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #b392f0, stop:1 #a371f7);"
+        "}"
+        "QPushButton:pressed {"
+        "    background: #8957e5;"
+        "}");
+    ui->toolBar->addWidget(showMoviesToMoveButton);
+
+    ui->toolBar->addSeparator();
+
+    QPushButton *settingsButton = new QPushButton("⚙️ Settings", this);
+    settingsButton->setToolTip("Open application settings");
+    settingsButton->setMinimumWidth(100);
+    settingsButton->setStyleSheet(
+        "QPushButton {"
+        "    background-color: #30363d;"
+        "    color: #c9d1d9;"
+        "    border: 1px solid #484f58;"
+        "    border-radius: 6px;"
+        "    padding: 6px 12px;"
+        "    font-weight: bold;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #484f58;"
+        "    border-color: #6e7681;"
+        "}"
+        "QPushButton:pressed {"
+        "    background-color: #21262d;"
+        "}");
+    ui->toolBar->addWidget(settingsButton);
+
+    ui->toolBar->addSeparator();
+
+    QPushButton *clearTableButton = new QPushButton("🗑️ Clear Table", this);
+    clearTableButton->setToolTip("Clear all movies from the table");
+    clearTableButton->setMinimumWidth(110);
+    clearTableButton->setStyleSheet(
+        "QPushButton {"
+        "    background-color: #8b0000;"
+        "    color: white;"
+        "    border: 1px solid #b30000;"
+        "    border-radius: 6px;"
+        "    padding: 6px 12px;"
+        "    font-weight: bold;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #a50000;"
+        "    border-color: #cc0000;"
+        "}"
+        "QPushButton:pressed {"
+        "    background-color: #6b0000;"
+        "}");
+    ui->toolBar->addWidget(clearTableButton);
+
     connect(ui->tableWidget, &QTableWidget::customContextMenuRequested, this, &MainWindow::showContextMenu);
     connect(ui->selectFolderButton, &QPushButton::clicked, this, &MainWindow::onSelectFolderClicked);
 
@@ -143,8 +242,13 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->exportButton, &QPushButton::clicked, this, &MainWindow::exportToExcel);
     connect(ui->searchLineEdit, &QLineEdit::textChanged, this, &MainWindow::filterTableRows);
     connect(omdbClient, &OmdbClient::movieFetched, this, &MainWindow::onMovieFetched);
+    connect(omdbClient, &OmdbClient::movieFetchedFromDatabase, this, &MainWindow::onMovieFetchedFromDatabase);
     connect(omdbClient, &OmdbClient::movieExistsInDatabase, this, &MainWindow::onMovieExistsInDatabase);
     connect(ui->fetchButton, &QPushButton::clicked, this, &MainWindow::onFetchClicked);
+    connect(fetchByDriveYearButton, &QPushButton::clicked, this, &MainWindow::onFetchByDriveYearClicked);
+    connect(showMoviesToMoveButton, &QPushButton::clicked, this, &MainWindow::onShowMoviesToMoveClicked);
+    connect(settingsButton, &QPushButton::clicked, this, &MainWindow::onSettingsClicked);
+    connect(clearTableButton, &QPushButton::clicked, this, &MainWindow::onClearTableClicked);
 
     // Add tooltips for better user experience
     ui->searchLineEdit->setToolTip("Search through all movie titles, directors, actors, and other fields");
@@ -1052,6 +1156,9 @@ void MainWindow::cleanupProgressDialog()
         delete progressDialog;
         progressDialog = nullptr;
     }
+
+    // Show fetch summary if enabled in settings
+    showFetchSummary();
 }
 
 // ========================================================================
@@ -1182,6 +1289,9 @@ void MainWindow::onFetchClicked()
     // Count how many movies need fetching
     totalMoviesToFetch = 0;
     moviesFetched = 0;
+    moviesFromDatabase = 0;
+    moviesFromImdb = 0;
+    moviesFetchedFromImdbList.clear(); // Clear the list for new fetch session
 
     for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
     {
@@ -1265,9 +1375,8 @@ void MainWindow::onFetchClicked()
         QTimer::singleShot(1000, this, &MainWindow::cleanupProgressDialog);
     }
 
-    ui->statusbar->showMessage(QString("Initiated fetch for %1 movies. Data will update as responses arrive.")
-                                   .arg(totalMoviesToFetch),
-                               5000);
+    // Initial status message (will be updated as movies are fetched)
+    ui->statusbar->showMessage(QString("Fetching data for %1 movies...").arg(totalMoviesToFetch));
 }
 QString MainWindow::sanitizeForWindowsFolder(const QString &name)
 {
@@ -1278,6 +1387,73 @@ QString MainWindow::sanitizeForWindowsFolder(const QString &name)
 void MainWindow::onMovieFetched(const Movie &movie)
 {
     const QString sanitizedTitle = sanitizeForWindowsFolder(movie.title);
+
+    // Track as fetched from IMDb
+    moviesFromImdb++;
+    moviesFetchedFromImdbList.append(movie.title); // Add to the list
+
+    // Update status bar with statistics (permanent message - no timeout)
+    ui->statusbar->showMessage(QString("Fetched %1 of %2 movies | From Database: %3 | From IMDb: %4")
+                                   .arg(moviesFromDatabase + moviesFromImdb)
+                                   .arg(totalMoviesToFetch)
+                                   .arg(moviesFromDatabase)
+                                   .arg(moviesFromImdb));
+
+    for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
+    {
+        QTableWidgetItem *item = ui->tableWidget->item(row, 0);
+        if (!item)
+            continue;
+
+        const QString rowTitle = sanitizeForWindowsFolder(item->text());
+
+        if (rowTitle == sanitizedTitle)
+        {
+            // store imdbID on the row's title item so the IMDb button can open direct URL
+            QTableWidgetItem *titleItem = ui->tableWidget->item(row, 0);
+            if (titleItem)
+            {
+                titleItem->setData(ImdbIdRole, movie.imdbID);
+                // Update the IMDb button tooltip in the Actions cell if present
+                QWidget *actionsWidget = ui->tableWidget->cellWidget(row, 9);
+                if (actionsWidget)
+                {
+                    // find child QPushButton with objectName imdbButton
+                    QPushButton *btn = actionsWidget->findChild<QPushButton *>("imdbButton");
+                    if (btn)
+                        btn->setToolTip(movie.imdbID.isEmpty() ? "Search on IMDb" : "Open IMDb page");
+                }
+            }
+            ui->tableWidget->setItem(row, 10, new QTableWidgetItem(movie.rated));
+            ui->tableWidget->setItem(row, 11, new QTableWidgetItem(movie.imdbRating));
+            ui->tableWidget->setItem(row, 12, new NumericTableWidgetItem(movie.imdbVotes));
+            ui->tableWidget->setItem(row, 13, new QTableWidgetItem(movie.director));
+            ui->tableWidget->setItem(row, 14, new QTableWidgetItem(movie.actors));
+            ui->tableWidget->setItem(row, 15, new QTableWidgetItem(movie.writer));
+            ui->tableWidget->setItem(row, 16, new QTableWidgetItem(movie.awards));
+            ui->tableWidget->setItem(row, 17, new QTableWidgetItem(movie.language));
+            ui->tableWidget->setItem(row, 18, new QTableWidgetItem(movie.country));
+            ui->tableWidget->setItem(row, 19, new QTableWidgetItem(movie.boxOffice));
+            ui->tableWidget->setItem(row, 20, new QTableWidgetItem(movie.plot));
+            ui->tableWidget->setItem(row, 21, new QTableWidgetItem(movie.genre));
+            break;
+        }
+    }
+}
+
+void MainWindow::onMovieFetchedFromDatabase(const Movie &movie)
+{
+    const QString sanitizedTitle = sanitizeForWindowsFolder(movie.title);
+
+    // Track as fetched from database
+    moviesFromDatabase++;
+
+    // Update status bar with statistics (permanent message - no timeout)
+    ui->statusbar->showMessage(QString("Fetched %1 of %2 movies | From Database: %3 | From IMDb: %4")
+                                   .arg(moviesFromDatabase + moviesFromImdb)
+                                   .arg(totalMoviesToFetch)
+                                   .arg(moviesFromDatabase)
+                                   .arg(moviesFromImdb));
 
     for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
     {
@@ -1368,5 +1544,342 @@ void MainWindow::loadExternalStylesheet()
         QString style = styleStream.readAll();
         styleFile.close();
         this->setStyleSheet(style);
+    }
+}
+
+// ========================================================================
+// DRIVE & YEAR SELECTION
+// ========================================================================
+
+QString MainWindow::buildFolderPath(const QString &drive, int year)
+{
+    QString path = drive;
+
+    if (year >= 2000)
+    {
+        path += "+2000\\";
+        int decade = (year / 10) % 10; // Get decade digit (0s, 10s, 20s)
+        path += QString::number(decade) + "0s\\";
+    }
+    else
+    {
+        path += "-2000\\";
+        int decade = (year / 10) % 10; // Get decade digit (50s, 60s, 70s, 80s, 90s)
+        path += QString::number(decade) + "0s\\";
+    }
+
+    path += QString::number(year);
+
+    return path;
+}
+
+bool MainWindow::meetsHighQualityCriteria(int votes, double rating)
+{
+    return (votes >= 100000 && rating >= 7.0);
+}
+
+void MainWindow::onFetchByDriveYearClicked()
+{
+    QString drive = driveComboBox->currentText();
+    QString yearText = yearLineEdit->text().trimmed();
+
+    if (yearText.isEmpty())
+    {
+        QMessageBox::warning(this, "Input Required", "Please enter a year (e.g., 2023, 1994)");
+        return;
+    }
+
+    bool ok;
+    int year = yearText.toInt(&ok);
+
+    if (!ok || year < 1900 || year > 2100)
+    {
+        QMessageBox::warning(this, "Invalid Year", "Please enter a valid year between 1900 and 2100");
+        return;
+    }
+
+    QString folderPath = buildFolderPath(drive, year);
+
+    QDir dir(folderPath);
+    if (!dir.exists())
+    {
+        QMessageBox::warning(this, "Folder Not Found",
+                             QString("The folder does not exist:\n%1\n\nExpected format:\n%2")
+                                 .arg(folderPath)
+                                 .arg("Drive:\\+2000\\20s\\2023 or Drive:\\-2000\\90s\\1994"));
+        return;
+    }
+
+    ui->statusbar->showMessage(QString("Scanning %1...").arg(folderPath));
+
+    // Process videos from this folder
+    processVideos(folderPath, false);
+
+    ui->statusbar->showMessage(QString("Loaded movies from %1").arg(folderPath), 5000);
+}
+
+void MainWindow::onShowMoviesToMoveClicked()
+{
+    // Check if drive is selected
+    if (!driveComboBox || driveComboBox->currentText().isEmpty())
+    {
+        QMessageBox::warning(this, "No Drive Selected", "Please select a drive (D or E) first");
+        return;
+    }
+
+    QString currentDrive = driveComboBox->currentText();
+
+    // Collect movies that need to be moved
+    QList<MovieToMove> moviesToMove;
+
+    for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
+    {
+        // Skip hidden rows
+        if (ui->tableWidget->isRowHidden(row))
+            continue;
+
+        QTableWidgetItem *titleItem = ui->tableWidget->item(row, 0);
+        QTableWidgetItem *yearItem = ui->tableWidget->item(row, 1);
+        QTableWidgetItem *ratingItem = ui->tableWidget->item(row, 11);
+        QTableWidgetItem *votesItem = ui->tableWidget->item(row, 12);
+
+        if (!titleItem || !yearItem || !ratingItem || !votesItem)
+            continue;
+
+        QString title = titleItem->text();
+        QString year = yearItem->text();
+        QString ratingStr = ratingItem->text();
+        QString votesStr = votesItem->text();
+
+        // Get file path from first column
+        QString moviePath = titleItem->data(Qt::UserRole + 1).toString();
+        if (moviePath.isEmpty())
+            continue;
+
+        // Extract drive from path
+        QString movieDrive;
+        if (moviePath.startsWith("D:", Qt::CaseInsensitive))
+            movieDrive = "D";
+        else if (moviePath.startsWith("E:", Qt::CaseInsensitive))
+            movieDrive = "E";
+        else
+            continue;
+
+        // Parse rating and votes
+        double rating = ratingStr.toDouble();
+        QString votesNumeric = votesStr;
+        votesNumeric.remove(',');
+        votesNumeric.remove('K');
+        int votes = 0;
+        if (votesStr.contains('K'))
+        {
+            votes = static_cast<int>(votesNumeric.toDouble() * 1000);
+        }
+        else
+        {
+            votes = votesNumeric.toInt();
+        }
+
+        // Check if movie meets criteria for D drive
+        bool meetsHighQuality = meetsHighQualityCriteria(votes, rating);
+
+        // Determine if movie is in wrong location
+        bool needsMove = false;
+        QString targetDrive;
+
+        if (meetsHighQuality && movieDrive == "E")
+        {
+            // Should be on D but is on E
+            needsMove = true;
+            targetDrive = "D";
+        }
+        else if (!meetsHighQuality && movieDrive == "D")
+        {
+            // Should be on E but is on D
+            needsMove = true;
+            targetDrive = "E";
+        }
+
+        if (needsMove)
+        {
+            MovieToMove movie;
+            movie.title = title;
+            movie.year = year;
+            movie.imdbRating = ratingStr;
+            movie.imdbVotes = votesStr;
+
+            // Get folder path (without movie folder name)
+            QFileInfo fileInfo(moviePath);
+            QString currentFolderPath = fileInfo.dir().absolutePath();
+            movie.currentPath = currentFolderPath;
+            movie.targetDrive = targetDrive;
+
+            // Build target path by replacing drive letter
+            // E.g., D:\+2000\20s\2023 becomes E:\+2000\20s\2023
+            QString targetPath = currentFolderPath;
+            if (movieDrive == "D")
+            {
+                targetPath.replace(0, 2, "E:");
+            }
+            else if (movieDrive == "E")
+            {
+                targetPath.replace(0, 2, "D:");
+            }
+            movie.targetPath = targetPath;
+
+            moviesToMove.append(movie);
+        }
+    }
+
+    // Create and show the window
+    MoviesToMoveWindow *window = new MoviesToMoveWindow(this);
+    window->setMoviesToMove(moviesToMove);
+    window->setAttribute(Qt::WA_DeleteOnClose);
+    window->show();
+
+    ui->statusbar->showMessage(QString("Found %1 movie(s) that need to be moved").arg(moviesToMove.size()), 5000);
+}
+
+void MainWindow::onSettingsClicked()
+{
+    SettingsDialog *dialog = new SettingsDialog(this);
+    dialog->exec();
+    delete dialog;
+}
+
+void MainWindow::showFetchSummary()
+{
+    // Check if setting is enabled
+    QSettings settings("MovieInfo", "MovieInfoApp");
+    bool showSummary = settings.value("fetch/showSummary", true).toBool();
+
+    if (!showSummary || moviesFetchedFromImdbList.isEmpty())
+    {
+        return;
+    }
+
+    // Create dialog
+    QDialog *summaryDialog = new QDialog(this);
+    summaryDialog->setWindowTitle("Fetch Summary");
+    summaryDialog->setMinimumWidth(600);
+    summaryDialog->setMinimumHeight(400);
+
+    QVBoxLayout *layout = new QVBoxLayout(summaryDialog);
+    layout->setSpacing(15);
+    layout->setContentsMargins(20, 20, 20, 20);
+
+    // Title
+    QLabel *titleLabel = new QLabel(QString("Movies Fetched from IMDb (%1)").arg(moviesFetchedFromImdbList.size()));
+    titleLabel->setStyleSheet(
+        "QLabel {"
+        "    color: #c9d1d9;"
+        "    font-size: 16px;"
+        "    font-weight: bold;"
+        "    padding-bottom: 10px;"
+        "}");
+    layout->addWidget(titleLabel);
+
+    // List of movies
+    QTextEdit *movieList = new QTextEdit();
+    movieList->setReadOnly(true);
+    movieList->setStyleSheet(
+        "QTextEdit {"
+        "    background-color: #161b22;"
+        "    color: #c9d1d9;"
+        "    border: 1px solid #30363d;"
+        "    border-radius: 6px;"
+        "    padding: 10px;"
+        "    font-family: 'Consolas', 'Courier New', monospace;"
+        "    font-size: 12px;"
+        "}");
+
+    QString movieText;
+    for (int i = 0; i < moviesFetchedFromImdbList.size(); ++i)
+    {
+        movieText += QString("%1. %2\n").arg(i + 1).arg(moviesFetchedFromImdbList[i]);
+    }
+    movieList->setPlainText(movieText);
+    layout->addWidget(movieList);
+
+    // Statistics
+    QLabel *statsLabel = new QLabel(
+        QString("Total: %1 movies | From Database: %2 | From IMDb: %3")
+            .arg(moviesFromDatabase + moviesFromImdb)
+            .arg(moviesFromDatabase)
+            .arg(moviesFromImdb));
+    statsLabel->setStyleSheet(
+        "QLabel {"
+        "    color: #8b949e;"
+        "    font-size: 11px;"
+        "    padding: 5px;"
+        "}");
+    layout->addWidget(statsLabel);
+
+    // Close button
+    QPushButton *closeButton = new QPushButton("Close");
+    closeButton->setMinimumWidth(100);
+    closeButton->setStyleSheet(
+        "QPushButton {"
+        "    background-color: #238636;"
+        "    color: white;"
+        "    border: none;"
+        "    padding: 8px 16px;"
+        "    border-radius: 6px;"
+        "    font-weight: bold;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #2ea043;"
+        "}"
+        "QPushButton:pressed {"
+        "    background-color: #1a7f37;"
+        "}");
+    connect(closeButton, &QPushButton::clicked, summaryDialog, &QDialog::accept);
+
+    QHBoxLayout *buttonLayout = new QHBoxLayout();
+    buttonLayout->addStretch();
+    buttonLayout->addWidget(closeButton);
+    layout->addLayout(buttonLayout);
+
+    // Style the dialog
+    summaryDialog->setStyleSheet(
+        "QDialog {"
+        "    background-color: #0d1117;"
+        "}");
+
+    summaryDialog->exec();
+    delete summaryDialog;
+}
+
+void MainWindow::onClearTableClicked()
+{
+    // Confirm with user before clearing
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this,
+        "Clear Table",
+        "Are you sure you want to clear all movies from the table?\n\nThis will not delete the database or files, only clear the current view.",
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No);
+
+    if (reply == QMessageBox::Yes)
+    {
+        // Clear the table
+        ui->tableWidget->setRowCount(0);
+
+        // Clear combo boxes (keep "All" option)
+        ui->comboBoxDecade->clear();
+        ui->comboBoxAspectRatio->clear();
+        ui->comboBoxQuality->clear();
+
+        addComboBoxItemIfNotExist(ui->comboBoxDecade, "All");
+        addComboBoxItemIfNotExist(ui->comboBoxAspectRatio, "All");
+        addComboBoxItemIfNotExist(ui->comboBoxQuality, "All");
+
+        // Clear search
+        ui->searchLineEdit->clear();
+
+        // Update status bar
+        ui->statusbar->showMessage("Table cleared successfully. Total movies: 0", 3000);
+
+        qDebug() << "Table cleared by user";
     }
 }

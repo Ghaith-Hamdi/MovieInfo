@@ -27,6 +27,7 @@ public:
 
 signals:
     void movieFetched(const Movie &movie);
+    void movieFetchedFromDatabase(const Movie &movie);
     void fetchFailed(const QString &error);
     void movieExistsInDatabase(const QString &movieName, const Movie &existingMovie);
 

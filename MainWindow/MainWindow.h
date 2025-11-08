@@ -5,6 +5,7 @@
 #include <QComboBox>
 #include <QTableWidget>
 #include <QPushButton>
+#include <QLineEdit>
 #include <optional>
 #include <QFileInfo>
 #include <QProgressDialog>
@@ -12,6 +13,8 @@
 #include "Movie/Movie.h"
 #include "TableColumnManager/TableColumnManager.h"
 #include "MovieDataRefresher/MovieDataRefresher.h"
+#include "MoviesToMoveWindow/MoviesToMoveWindow.h"
+#include "SettingsDialog/SettingsDialog.h"
 
 namespace Ui
 {
@@ -38,6 +41,7 @@ private slots:
     // ===== OMDb API / Movie Data =====
     void onFetchClicked();
     void onMovieFetched(const Movie &movie);
+    void onMovieFetchedFromDatabase(const Movie &movie);
     void onRefreshMovieClicked();
     void onMovieExistsInDatabase(const QString &movieName, const Movie &existingMovie);
 
@@ -56,11 +60,22 @@ private slots:
     void onImdbButtonClicked();
     void onPaheButtonClicked();
 
+    // ===== Drive & Year Selection =====
+    void onFetchByDriveYearClicked();
+    void onShowMoviesToMoveClicked();
+
+    // ===== Table Management =====
+    void onClearTableClicked();
+
     // ===== Export =====
     void exportToExcel();
 
+    // ===== Settings =====
+    void onSettingsClicked();
+
     // ===== Utility Slots =====
     void cleanupProgressDialog();
+    void showFetchSummary();
 
 private:
     // ===== Constants & Enums =====
@@ -84,6 +99,10 @@ private:
     // ===== UI Components =====
     Ui::MainWindow *ui;
     QProgressDialog *progressDialog;
+    QComboBox *driveComboBox;
+    QLineEdit *yearLineEdit;
+    QPushButton *fetchByDriveYearButton;
+    QPushButton *showMoviesToMoveButton;
 
     // ===== Helper Classes =====
     OmdbClient *omdbClient;
@@ -97,6 +116,9 @@ private:
     int pendingRefreshMovieYear;
     int totalMoviesToFetch;
     int moviesFetched;
+    int moviesFromDatabase;
+    int moviesFromImdb;
+    QStringList moviesFetchedFromImdbList; // Track movie titles fetched from IMDb
 
     // ===== Video Processing Methods =====
     void processVideos(const QString &path, bool isSingleFile);
@@ -132,6 +154,9 @@ private:
     QString sanitizeForWindowsFolder(const QString &name);
     std::optional<QFileInfo> getFileInfoForRow(int row);
     void loadExternalStylesheet();
+    QString buildFolderPath(const QString &drive, int year);
+    bool meetsHighQualityCriteria(int votes, double rating);
+    void sortMoviesByGroup();
 };
 
 #endif // MAINWINDOW_H

@@ -4,6 +4,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QMessageBox>
+#include <QRegularExpression>
 #include "MovieDatabase/MovieDatabase.h"
 
 OmdbClient::OmdbClient(const QString &apiKey, MovieDB *movieDb, QObject *parent)
@@ -26,16 +27,33 @@ Movie OmdbClient::getExistingMovieData(const QString &movieName)
 
 void OmdbClient::fetchMovie(const QString &movieName, int year, bool forceRefresh)
 {
+    qDebug() << "Fetching movie:" << movieName << "| Year:" << year;
+
     // Check local database first (unless force refresh is requested)
-    if (!forceRefresh && movieDb && movieDb->movieExists(movieName))
+    if (!forceRefresh && movieDb)
     {
-        Movie movie = movieDb->getMovie(movieName);
+        // Try exact match first (fastest)
+        if (movieDb->movieExists(movieName))
+        {
+            Movie movie = movieDb->getMovie(movieName);
+            if (!movie.title.isEmpty())
+            {
+                qDebug() << "✓ Found in database (exact match):" << movieName;
+                emit movieFetchedFromDatabase(movie);
+                return;
+            }
+        }
+
+        // Try sanitized match (handles special characters)
+        Movie movie = movieDb->getMovieBySanitizedTitle(movieName);
         if (!movie.title.isEmpty())
         {
-            qDebug() << "Found movie in database:" << movieName;
-            emit movieFetched(movie);
+            qDebug() << "✓ Found in database (sanitized match):" << movie.title;
+            emit movieFetchedFromDatabase(movie);
             return;
         }
+
+        qDebug() << "✗ Not found in database, fetching from IMDb:" << movieName;
     }
 
     // If forceRefresh is true and movie exists, emit signal to ask for confirmation
