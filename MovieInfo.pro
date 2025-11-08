@@ -6,13 +6,17 @@ SOURCES += \
     OmdbClient.cpp \
     main.cpp \
     moviedb.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    TableColumnManager.cpp \
+    MovieDataRefresher.cpp
 
 HEADERS += \
     OmdbClient.h \
     moviedb.h \
     mainwindow.h \
-    movie.h
+    movie.h \
+    TableColumnManager.h \
+    MovieDataRefresher.h
 
 FORMS += \
     mainwindow.ui

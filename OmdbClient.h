@@ -22,11 +22,13 @@ public:
     explicit OmdbClient(const QString &apiKey, MovieDB *movieDb, QObject *parent = nullptr);
     ~OmdbClient();
 
-    void fetchMovie(const QString &movieName, int year = 0);
+    void fetchMovie(const QString &movieName, int year = 0, bool forceRefresh = false);
+    Movie getExistingMovieData(const QString &movieName);
 
 signals:
     void movieFetched(const Movie &movie);
     void fetchFailed(const QString &error);
+    void movieExistsInDatabase(const QString &movieName, const Movie &existingMovie);
 
 private slots:
     void onMovieFetched(QNetworkReply *reply);

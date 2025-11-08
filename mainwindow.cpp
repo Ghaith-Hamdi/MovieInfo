@@ -1,5 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "TableColumnManager.h"
+#include "MovieDataRefresher.h"
 
 #include <QAction>
 #include <QComboBox>
@@ -30,6 +32,14 @@
 #include <QDragEnterEvent>
 #include <QIcon>
 #include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+#include <QProgressDialog>
+#include <QTimer>
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QTextEdit>
 
 class NumericTableWidgetItem : public QTableWidgetItem
 {
@@ -53,15 +63,18 @@ public:
     }
 };
 
-// ===================== Constructor / Destructor =====================
+// ========================================================================
+// CONSTRUCTOR / DESTRUCTOR
+// ========================================================================
 
 MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), ui(new Ui::MainWindow)
+    : QMainWindow(parent), ui(new Ui::MainWindow), progressDialog(nullptr),
+      totalMoviesToFetch(0), moviesFetched(0)
 {
     ui->setupUi(this);
 
     // Set window icon and improve window appearance
-    setWindowIcon(QIcon("icons/app_icon.png")); // You can add an icon later
+    setWindowIcon(QIcon("icons/app_icon.png"));
     setWindowTitle("MovieInfo - Video Library Manager");
 
     // Add a toolbar if it doesn't exist
@@ -79,9 +92,11 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     // Initialize OMDb client
-    // omdbClient = new OmdbClient("5af6b86e", movieDb, this);
-    // omdbClient = new OmdbClient("c774e520", movieDb, this);
     omdbClient = new OmdbClient("10f95a16", movieDb, this);
+
+    // Initialize helper classes
+    columnManager = new TableColumnManager(ui->tableWidget, ui->toolBar, this);
+    dataRefresher = new MovieDataRefresher(movieDb, omdbClient, ui->statusbar, this);
 
     // Setup table with improved styling
     ui->tableWidget->setColumnCount(22);
@@ -104,36 +119,31 @@ MainWindow::MainWindow(QWidget *parent)
     ui->tableWidget->horizontalHeader()->setHighlightSections(false);
     ui->tableWidget->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
-    // Initialize column visibility features
-    loadColumnVisibilitySettings();
-    setupColumnVisibilityMenu();
-
-    // Initialize column ordering features
-    loadColumnOrderSettings();
-    setupColumnReorderingMenu();
+    // Setup column management
+    columnManager->setupColumnVisibilityMenu();
+    columnManager->setupColumnReorderingMenu();
+    columnManager->loadSettings();
 
     connect(ui->tableWidget, &QTableWidget::customContextMenuRequested, this, &MainWindow::showContextMenu);
     connect(ui->selectFolderButton, &QPushButton::clicked, this, &MainWindow::onSelectFolderClicked);
 
     // Initialize combo boxes with "All"
-    for (auto combo : {ui->comboBoxDecade, ui->comboBoxAspectRatio, ui->comboBoxQuality})
-        addComboBoxItemIfNotExist(combo, "All");
+    addComboBoxItemIfNotExist(ui->comboBoxDecade, "All");
+    addComboBoxItemIfNotExist(ui->comboBoxAspectRatio, "All");
+    addComboBoxItemIfNotExist(ui->comboBoxQuality, "All");
 
     setAcceptDrops(true);
 
     // Connect combo boxes to filterTable
-    auto connectCombo = [this](QComboBox *box)
-    {
-        connect(box, &QComboBox::currentTextChanged, this, &MainWindow::filterTable);
-    };
-    connectCombo(ui->comboBoxDecade);
-    connectCombo(ui->comboBoxAspectRatio);
-    connectCombo(ui->comboBoxQuality);
+    connect(ui->comboBoxDecade, &QComboBox::currentTextChanged, this, &MainWindow::filterTable);
+    connect(ui->comboBoxAspectRatio, &QComboBox::currentTextChanged, this, &MainWindow::filterTable);
+    connect(ui->comboBoxQuality, &QComboBox::currentTextChanged, this, &MainWindow::filterTable);
 
     // Other signal connections
     connect(ui->exportButton, &QPushButton::clicked, this, &MainWindow::exportToExcel);
     connect(ui->searchLineEdit, &QLineEdit::textChanged, this, &MainWindow::filterTableRows);
     connect(omdbClient, &OmdbClient::movieFetched, this, &MainWindow::onMovieFetched);
+    connect(omdbClient, &OmdbClient::movieExistsInDatabase, this, &MainWindow::onMovieExistsInDatabase);
     connect(ui->fetchButton, &QPushButton::clicked, this, &MainWindow::onFetchClicked);
 
     // Add tooltips for better user experience
@@ -148,14 +158,13 @@ MainWindow::MainWindow(QWidget *parent)
     // Add status bar message
     ui->statusbar->showMessage("Ready to process videos. Drag and drop files or use 'Select Folder' button.");
 
-    // Optionally load external stylesheet for additional styling
+    // Load external stylesheet for additional styling
     loadExternalStylesheet();
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
-    // movieDb and omdbClient will be deleted automatically by Qt parent system
 }
 
 void MainWindow::onSelectFolderClicked()
@@ -219,7 +228,9 @@ void MainWindow::dropEvent(QDropEvent *event)
     }
 }
 
-// ===================== Video Processing =====================
+// ========================================================================
+// VIDEO PROCESSING
+// ========================================================================
 
 void MainWindow::processVideos(const QStringList &filePaths)
 {
@@ -227,6 +238,111 @@ void MainWindow::processVideos(const QStringList &filePaths)
     {
         processVideos(filePath, true);
     }
+}
+
+QPushButton *MainWindow::createActionButton(const QString &text, const QString &iconPath, const QString &styleSheet, const QString &objectName)
+{
+    QPushButton *button = new QPushButton(text);
+
+    // Try to load custom icon, fallback to Qt standard icon
+    QIcon icon(iconPath);
+    if (icon.isNull())
+    {
+        if (text == "Open")
+            icon = style()->standardIcon(QStyle::SP_MediaPlay);
+        else
+            icon = style()->standardIcon(QStyle::SP_ComputerIcon);
+    }
+    button->setIcon(icon);
+    button->setIconSize(QSize(16, 16));
+    button->setStyleSheet(styleSheet);
+
+    if (!objectName.isEmpty())
+        button->setObjectName(objectName);
+
+    return button;
+}
+
+QWidget *MainWindow::createActionButtonsWidget(const QString &filePath, const QString &title, const QString &year)
+{
+    const QString openButtonStyle =
+        "QPushButton {"
+        "    background-color: #2e7d32;"
+        "    color: white;"
+        "    border: none;"
+        "    padding: 6px 12px;"
+        "    border-radius: 4px;"
+        "    font-size: 11px;"
+        "    font-weight: bold;"
+        "    min-width: 60px;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #388e3c;"
+        "}"
+        "QPushButton:pressed {"
+        "    background-color: #1b5e20;"
+        "}";
+
+    const QString imdbButtonStyle =
+        "QPushButton {"
+        "    background-color: #f57c00;"
+        "    color: white;"
+        "    border: none;"
+        "    padding: 6px 12px;"
+        "    border-radius: 4px;"
+        "    font-size: 11px;"
+        "    font-weight: bold;"
+        "    min-width: 60px;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #ff8f00;"
+        "}"
+        "QPushButton:pressed {"
+        "    background-color: #e65100;"
+        "}";
+
+    const QString paheButtonStyle =
+        "QPushButton {"
+        "    background-color: #1976d2;"
+        "    color: white;"
+        "    border: none;"
+        "    padding: 6px 12px;"
+        "    border-radius: 4px;"
+        "    font-size: 11px;"
+        "    font-weight: bold;"
+        "    min-width: 60px;"
+        "}"
+        "QPushButton:hover {"
+        "    background-color: #1565c0;"
+        "}"
+        "QPushButton:pressed {"
+        "    background-color: #0d47a1;"
+        "}";
+
+    QPushButton *openButton = createActionButton("Open", "icons/open.png", openButtonStyle);
+    openButton->setProperty("filePath", filePath);
+    connect(openButton, &QPushButton::clicked, this, &MainWindow::onOpenFileClicked);
+
+    QPushButton *imdbButton = createActionButton("IMDb", "icons/imdb.png", imdbButtonStyle, "imdbButton");
+    imdbButton->setToolTip("Search on IMDb");
+    imdbButton->setProperty("title", title);
+    imdbButton->setProperty("year", year);
+    connect(imdbButton, &QPushButton::clicked, this, &MainWindow::onImdbButtonClicked);
+
+    QPushButton *paheButton = createActionButton("Pahe", "icons/pahe.png", paheButtonStyle);
+    paheButton->setProperty("title", title);
+    paheButton->setProperty("year", year);
+    connect(paheButton, &QPushButton::clicked, this, &MainWindow::onPaheButtonClicked);
+
+    QWidget *buttonsWidget = new QWidget();
+    QHBoxLayout *layout = new QHBoxLayout(buttonsWidget);
+    layout->addWidget(openButton);
+    layout->addWidget(imdbButton);
+    layout->addWidget(paheButton);
+    layout->setContentsMargins(4, 2, 4, 2);
+    layout->setSpacing(4);
+
+    return buttonsWidget;
 }
 
 void MainWindow::processVideos(const QString &path, bool isSingleFile)
@@ -253,21 +369,37 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
         }
     }
 
+    // Show progress dialog for processing
+    if (!filesToProcess.isEmpty())
+    {
+        progressDialog = new QProgressDialog("Processing video files...", "Cancel", 0, filesToProcess.size(), this);
+        progressDialog->setWindowModality(Qt::WindowModal);
+        progressDialog->setMinimumDuration(500);
+        progressDialog->setValue(0);
+    }
+
+    int processedCount = 0;
     for (const QString &filePath : filesToProcess)
     {
-        QString resolution = getVideoResolution(filePath);
-        QString aspectRatio = getAspectRatio(resolution);
+        // Check if user cancelled
+        if (progressDialog && progressDialog->wasCanceled())
+        {
+            ui->statusbar->showMessage("Processing cancelled by user.", 3000);
+            break;
+        }
+
+        // Use batch metadata extraction for better performance
+        VideoMetadata metadata = getVideoMetadataBatch(filePath);
+
         QString folderName = QFileInfo(filePath).dir().dirName();
-        auto [title, year] = parseFolderName(folderName);
+        QPair<QString, QString> parsed = parseFolderName(folderName);
+        QString title = parsed.first;
+        QString year = parsed.second;
         QString decade = getDecade(year);
-        QString quality = getVideoQuality(filePath);
-        QString duration = getVideoDuration(filePath);
-        QString fileSize = getFileSize(filePath);
-        QString audioLanguage = getAudioLanguage(filePath);
 
         decades.insert(decade);
-        aspectRatios.insert(aspectRatio);
-        qualities.insert(quality);
+        aspectRatios.insert(metadata.aspectRatio);
+        qualities.insert(metadata.quality);
 
         int row = ui->tableWidget->rowCount();
         ui->tableWidget->insertRow(row);
@@ -276,134 +408,32 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
         ui->tableWidget->setItem(row, 0, titleItem);
         ui->tableWidget->setItem(row, 1, new QTableWidgetItem(year));
         ui->tableWidget->setItem(row, 2, new QTableWidgetItem(decade));
-        ui->tableWidget->setItem(row, 3, new QTableWidgetItem(resolution));
-        ui->tableWidget->setItem(row, 4, new QTableWidgetItem(aspectRatio));
-        ui->tableWidget->setItem(row, 5, new QTableWidgetItem(quality));
-        ui->tableWidget->setItem(row, 6, new NumericTableWidgetItem(fileSize));
-        ui->tableWidget->setItem(row, 7, new QTableWidgetItem(duration));
-        ui->tableWidget->setItem(row, 8, new QTableWidgetItem(audioLanguage));
+        ui->tableWidget->setItem(row, 3, new QTableWidgetItem(metadata.resolution));
+        ui->tableWidget->setItem(row, 4, new QTableWidgetItem(metadata.aspectRatio));
+        ui->tableWidget->setItem(row, 5, new QTableWidgetItem(metadata.quality));
+        ui->tableWidget->setItem(row, 6, new NumericTableWidgetItem(metadata.fileSize));
+        ui->tableWidget->setItem(row, 7, new QTableWidgetItem(metadata.duration));
+        ui->tableWidget->setItem(row, 8, new QTableWidgetItem(metadata.audioLanguage));
 
-        QPushButton *openButton = new QPushButton("Open");
-        // Try to load custom icon, fallback to Qt standard icon
-        QIcon openIcon("icons/open.png");
-        if (openIcon.isNull())
-        {
-            openIcon = style()->standardIcon(QStyle::SP_MediaPlay);
-        }
-        openButton->setIcon(openIcon);
-        openButton->setIconSize(QSize(16, 16));
-        openButton->setStyleSheet(
-            "QPushButton {"
-            "    background-color: #2e7d32;"
-            "    color: white;"
-            "    border: none;"
-            "    padding: 6px 12px;"
-            "    border-radius: 4px;"
-            "    font-size: 11px;"
-            "    font-weight: bold;"
-            "    min-width: 60px;"
-            "}"
-            "QPushButton:hover {"
-            "    background-color: #388e3c;"
-            "}"
-            "QPushButton:pressed {"
-            "    background-color: #1b5e20;"
-            "}");
-        connect(openButton, &QPushButton::clicked, this, [filePath]()
-                { QDesktopServices::openUrl(QUrl::fromLocalFile(filePath)); });
-
-        QPushButton *imdbButton = new QPushButton("IMDb");
-        // Try to load custom icon, fallback to Qt standard icon
-        QIcon imdbIcon("icons/imdb.png");
-        if (imdbIcon.isNull())
-        {
-            imdbIcon = style()->standardIcon(QStyle::SP_ComputerIcon);
-        }
-        imdbButton->setIcon(imdbIcon);
-        imdbButton->setIconSize(QSize(16, 16));
-        imdbButton->setObjectName("imdbButton");
-        imdbButton->setToolTip("Search on IMDb");
-        imdbButton->setStyleSheet(
-            "QPushButton {"
-            "    background-color: #f57c00;"
-            "    color: white;"
-            "    border: none;"
-            "    padding: 6px 12px;"
-            "    border-radius: 4px;"
-            "    font-size: 11px;"
-            "    font-weight: bold;"
-            "    min-width: 60px;"
-            "}"
-            "QPushButton:hover {"
-            "    background-color: #ff8f00;"
-            "}"
-            "QPushButton:pressed {"
-            "    background-color: #e65100;"
-            "}");
-        // IMDb button: determine the clicked row dynamically so sorting/reordering doesn't break mapping
-        connect(imdbButton, &QPushButton::clicked, this, [this, title, year]()
-                {
-            QPushButton *btn = qobject_cast<QPushButton *>(sender());
-            if (!btn) { openImdbPage(title, year); return; }
-
-            // Map button center into the table viewport to find the index
-            QPoint center(btn->width()/2, btn->height()/2);
-            QPoint viewportPos = btn->mapTo(ui->tableWidget->viewport(), center);
-            QModelIndex idx = ui->tableWidget->indexAt(viewportPos);
-            int clickedRow = idx.isValid() ? idx.row() : -1;
-
-            if (clickedRow >= 0) {
-                QTableWidgetItem *titleItemLocal = ui->tableWidget->item(clickedRow, 0);
-                if (titleItemLocal) {
-                    QString imdbId = titleItemLocal->data(ImdbIdRole).toString();
-                    if (!imdbId.isEmpty()) {
-                        QString url = QString("https://www.imdb.com/title/%1/").arg(imdbId);
-                        QDesktopServices::openUrl(QUrl(url));
-                        return;
-                    }
-                }
-            }
-
-            // Fallback to IMDb search
-            openImdbPage(title, year); });
-
-        QPushButton *paheButton = new QPushButton("Pahe");
-        // Try to load custom icon, fallback to Qt standard icon
-        QIcon paheIcon("icons/pahe.png");
-        if (paheIcon.isNull())
-        {
-            paheIcon = style()->standardIcon(QStyle::SP_ComputerIcon);
-        }
-        paheButton->setIcon(paheIcon);
-        paheButton->setIconSize(QSize(16, 16));
-        paheButton->setStyleSheet(
-            "QPushButton {"
-            "    background-color: #1976d2;"
-            "    color: white;"
-            "    border: none;"
-            "    padding: 6px 12px;"
-            "    border-radius: 4px;"
-            "    font-size: 11px;"
-            "    font-weight: bold;"
-            "    min-width: 60px;"
-            "}"
-            "QPushButton:hover {"
-            "    background-color: #1565c0;"
-            "}"
-            "QPushButton:pressed {"
-            "    background-color: #0d47a1;"
-            "}");
-        connect(paheButton, &QPushButton::clicked, this, [this, title, year]()
-                { openPahePage(title, year); });
-
-        QWidget *buttonsWidget = new QWidget();
-        QHBoxLayout *layout = new QHBoxLayout(buttonsWidget);
-        layout->addWidget(openButton);
-        layout->addWidget(imdbButton);
-        layout->addWidget(paheButton);
-        layout->setContentsMargins(4, 2, 4, 2);
-        layout->setSpacing(4);
+        // Create action buttons widget
+        QWidget *buttonsWidget = createActionButtonsWidget(filePath, title, year);
         ui->tableWidget->setCellWidget(row, 9, buttonsWidget);
+
+        // Update progress
+        processedCount++;
+        if (progressDialog)
+        {
+            progressDialog->setValue(processedCount);
+            progressDialog->setLabelText(QString("Processing video %1 of %2...").arg(processedCount).arg(filesToProcess.size()));
+        }
+    }
+
+    // Clean up progress dialog
+    if (progressDialog)
+    {
+        progressDialog->close();
+        delete progressDialog;
+        progressDialog = nullptr;
     }
 
     addComboBoxItemsSorted(ui->comboBoxDecade, decades);
@@ -421,7 +451,9 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
                                5000);
 }
 
-// ===================== Utility Functions =====================
+// ========================================================================
+// VIDEO METADATA METHODS
+// ========================================================================
 
 QString MainWindow::runFfprobe(const QStringList &args)
 {
@@ -429,6 +461,134 @@ QString MainWindow::runFfprobe(const QStringList &args)
     ffprobe.start("ffprobe", args);
     ffprobe.waitForFinished();
     return ffprobe.readAllStandardOutput().trimmed();
+}
+
+MainWindow::VideoMetadata MainWindow::getVideoMetadataBatch(const QString &filePath)
+{
+    VideoMetadata metadata;
+
+    // Run ffprobe once to get all metadata in JSON format
+    QProcess ffprobe;
+    QStringList args;
+    args << "-v" << "quiet"
+         << "-print_format" << "json"
+         << "-show_format"
+         << "-show_streams"
+         << filePath;
+
+    ffprobe.start("ffprobe", args);
+    ffprobe.waitForFinished();
+
+    QByteArray output = ffprobe.readAllStandardOutput();
+    QJsonDocument doc = QJsonDocument::fromJson(output);
+
+    if (doc.isNull() || !doc.isObject())
+    {
+        // Fallback to unknown values
+        metadata.resolution = "Unknown";
+        metadata.aspectRatio = "Unknown";
+        metadata.quality = "Unknown";
+        metadata.duration = "Unknown";
+        metadata.audioLanguage = "Unknown";
+        metadata.fileSize = "0.00 GB";
+        return metadata;
+    }
+
+    QJsonObject root = doc.object();
+
+    // Extract resolution from video stream
+    if (root.contains("streams"))
+    {
+        QJsonArray streams = root["streams"].toArray();
+
+        // Find video stream
+        for (const QJsonValue &streamVal : streams)
+        {
+            QJsonObject stream = streamVal.toObject();
+            if (stream["codec_type"].toString() == "video")
+            {
+                int width = stream["width"].toInt(0);
+                int height = stream["height"].toInt(0);
+
+                if (width > 0 && height > 0)
+                {
+                    metadata.resolution = QString("%1x%2").arg(width).arg(height);
+
+                    // Calculate aspect ratio
+                    double ratio = static_cast<double>(width) / height;
+                    metadata.aspectRatio = QString::number(ratio, 'f', 2);
+                }
+                break;
+            }
+        }
+
+        // Find audio stream for language
+        for (const QJsonValue &streamVal : streams)
+        {
+            QJsonObject stream = streamVal.toObject();
+            if (stream["codec_type"].toString() == "audio")
+            {
+                if (stream.contains("tags"))
+                {
+                    QJsonObject tags = stream["tags"].toObject();
+                    if (tags.contains("language"))
+                    {
+                        metadata.audioLanguage = tags["language"].toString();
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    // Extract duration from format
+    if (root.contains("format"))
+    {
+        QJsonObject format = root["format"].toObject();
+        if (format.contains("duration"))
+        {
+            bool ok;
+            int seconds = format["duration"].toString().toDouble(&ok);
+            if (ok)
+            {
+                int h = seconds / 3600;
+                int m = (seconds % 3600) / 60;
+                int s = seconds % 60;
+                metadata.duration = QString("%1:%2:%3")
+                                        .arg(h, 2, 10, QChar('0'))
+                                        .arg(m, 2, 10, QChar('0'))
+                                        .arg(s, 2, 10, QChar('0'));
+            }
+        }
+    }
+
+    // Extract quality from filename (same logic as before)
+    QString fileName = QFileInfo(filePath).fileName().toLower();
+    if (fileName.contains("2160p") || fileName.contains("4k"))
+        metadata.quality = "4K";
+    else if (fileName.contains("1080p"))
+        metadata.quality = "1080p";
+    else if (fileName.contains("720p"))
+        metadata.quality = "720p";
+    else
+        metadata.quality = "Unknown";
+
+    // Calculate file size
+    QFileInfo info(filePath);
+    double sizeInGB = info.size() / (1024.0 * 1024.0 * 1024.0);
+    metadata.fileSize = QString::number(sizeInGB, 'f', 2) + " GB";
+
+    // Set defaults for any missing values
+    if (metadata.resolution.isEmpty())
+        metadata.resolution = "Unknown";
+    if (metadata.aspectRatio.isEmpty())
+        metadata.aspectRatio = "Unknown";
+    if (metadata.duration.isEmpty())
+        metadata.duration = "Unknown";
+    if (metadata.audioLanguage.isEmpty())
+        metadata.audioLanguage = "Unknown";
+
+    return metadata;
 }
 
 QString MainWindow::getVideoResolution(const QString &filePath)
@@ -509,7 +669,10 @@ QString MainWindow::getDecade(const QString &year)
     return ok ? QString::number(y - (y % 10)) + "s" : "Unknown";
 }
 
-// ===================== Filtering / Sorting =====================
+// ========================================================================
+// TABLE FILTERING & SEARCH
+// ========================================================================
+
 void MainWindow::filterTable()
 {
     QString selectedDecade = ui->comboBoxDecade->currentText();
@@ -552,7 +715,26 @@ void MainWindow::filterTableRows(const QString &text)
     }
 }
 
-// ===================== Context Menu =====================
+// ========================================================================
+// CONTEXT MENU ACTIONS
+// ========================================================================
+
+std::optional<QFileInfo> MainWindow::getFileInfoForRow(int row)
+{
+    QTableWidgetItem *item = ui->tableWidget->item(row, 0);
+    if (!item)
+        return std::nullopt;
+
+    QString filePath = item->data(FilePathRole).toString();
+    if (filePath.isEmpty())
+        return std::nullopt;
+
+    QFileInfo fileInfo(filePath);
+    if (!fileInfo.exists())
+        return std::nullopt;
+
+    return fileInfo;
+}
 
 void MainWindow::showContextMenu(const QPoint &pos)
 {
@@ -560,228 +742,321 @@ void MainWindow::showContextMenu(const QPoint &pos)
     if (!index.isValid())
         return;
 
+    contextMenuRow = index.row();
+
     QMenu menu(this);
+    QAction *refreshMovieAction = menu.addAction("Refresh Movie Data from IMDb");
+    menu.addSeparator();
     QAction *openFolderAction = menu.addAction("Open Containing Folder");
     QAction *renameFolderAction = menu.addAction("Rename Folder");
     QAction *moveFolderAction = menu.addAction("Move to Archive Folder");
 
-    const QString kArchiveFolderPath = "D:/New folder";
-
-    auto getFileInfo = [this](int row) -> std::optional<QFileInfo>
-    {
-        auto *item = ui->tableWidget->item(row, 0);
-        if (!item)
-            return std::nullopt;
-
-        QString filePath = item->data(FilePathRole).toString();
-        if (filePath.isEmpty())
-            return std::nullopt;
-
-        QFileInfo fileInfo(filePath);
-        if (!fileInfo.exists())
-            return std::nullopt;
-
-        return fileInfo;
-    };
-
-    connect(openFolderAction, &QAction::triggered, this, [=]()
-            {
-        auto fileInfoOpt = getFileInfo(index.row());
-        if (!fileInfoOpt) {
-            QMessageBox::warning(this, "Error", "Could not determine file path.");
-            return;
-        }
-        QDesktopServices::openUrl(QUrl::fromLocalFile(fileInfoOpt->absolutePath())); });
-
-    connect(renameFolderAction, &QAction::triggered, this, [=]()
-            {
-        auto fileInfoOpt = getFileInfo(index.row());
-        if (!fileInfoOpt)
-            return;
-
-        const QFileInfo &fileInfo = *fileInfoOpt;
-        QDir parentDir = fileInfo.dir();
-        QString currentPath = parentDir.absolutePath();
-
-        // Read existing movie title/year from table, fall back to parsing the folder name
-        QString title = "";
-        QString year = "";
-        QTableWidgetItem *titleItem = ui->tableWidget->item(index.row(), 0);
-        QTableWidgetItem *yearItem = ui->tableWidget->item(index.row(), 1);
-        if (titleItem) title = titleItem->text().trimmed();
-        if (yearItem) year = yearItem->text().trimmed();
-
-        if (title.isEmpty() || year.isEmpty() || year == "Unknown") {
-            // try parsing the parent folder's name (e.g., "Splitsville (2025)")
-            auto parsed = parseFolderName(parentDir.dirName());
-            if (title.isEmpty()) title = parsed.first;
-            if (year.isEmpty() || year == "Unknown") year = parsed.second;
-        }
-
-        // Build a small dialog with two fields: Movie name and Year
-    QDialog dlg(this);
-    dlg.setWindowTitle("Rename Folder");
-    // Make the dialog a bit wider for comfortable editing
-    dlg.setMinimumWidth(520);
-    QFormLayout form(&dlg);
-
-        QLineEdit *nameEdit = new QLineEdit(title, &dlg);
-        QLineEdit *yearEdit = new QLineEdit(year, &dlg);
-        yearEdit->setValidator(new QIntValidator(1800, 3000, yearEdit));
-        yearEdit->setMaxLength(4);
-
-        form.addRow("Movie name:", nameEdit);
-        form.addRow("Year:", yearEdit);
-
-        QDialogButtonBox *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel,
-                                                         Qt::Horizontal, &dlg);
-        form.addRow(buttons);
-        connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
-        connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
-
-        if (dlg.exec() != QDialog::Accepted)
-            return;
-
-        QString newTitle = nameEdit->text().trimmed();
-        QString newYear = yearEdit->text().trimmed();
-        if (newTitle.isEmpty()) {
-            QMessageBox::warning(this, "Error", "Movie name cannot be empty.");
-            return;
-        }
-
-        QString newName;
-        if (!newYear.isEmpty())
-            newName = QString("%1 (%2)").arg(newTitle, newYear);
-        else
-            newName = newTitle;
-        newName = sanitizeForWindowsFolder(newName).replace('\n', ' ').trimmed();
-        if (newName.isEmpty()) {
-            QMessageBox::warning(this, "Error", "Invalid folder name after sanitization.");
-            return;
-        }
-
-        QDir baseDir = parentDir;
-        baseDir.cdUp();
-        QString newPath = QDir::cleanPath(baseDir.absoluteFilePath(newName));
-
-        if (QDir(newPath).exists()) {
-            QMessageBox::warning(this, "Error", "Target folder already exists.");
-            return;
-        }
-
-        QString newPathNative = QDir::toNativeSeparators(newPath);
-        QString currentPathNative = QDir::toNativeSeparators(currentPath);
-
-        bool renamed = QDir().rename(currentPathNative, newPathNative);
-        if (!renamed) {
-            QProcess elevate;
-            QStringList args = {"/c", "move",
-                                QString("\"%1\"").arg(currentPathNative),
-                                QString("\"%1\"").arg(newPathNative)};
-            elevate.start("cmd.exe", args);
-            elevate.waitForFinished();
-
-            renamed = QDir(newPathNative).exists() && !QDir(currentPathNative).exists();
-        }
-
-        if (renamed) {
-            QString newFilePath = newPathNative + QDir::separator() + fileInfo.fileName();
-            // Update stored file path
-            if (ui->tableWidget->item(index.row(), 0))
-                ui->tableWidget->item(index.row(), 0)->setData(FilePathRole, newFilePath);
-
-            // Update visible UI: title, year and decade
-            if (!newTitle.isEmpty()) {
-                if (ui->tableWidget->item(index.row(), 0))
-                    ui->tableWidget->item(index.row(), 0)->setText(newTitle);
-            }
-            if (ui->tableWidget->item(index.row(), 1))
-                ui->tableWidget->item(index.row(), 1)->setText(newYear);
-            // Update decade (col 2) if year is numeric
-            QString newDecade = getDecade(newYear);
-            if (ui->tableWidget->item(index.row(), 2))
-                ui->tableWidget->item(index.row(), 2)->setText(newDecade);
-
-            // If any combo boxes depend on decades list, refresh them
-            addComboBoxItemIfNotExist(ui->comboBoxDecade, newDecade);
-
-            // After renaming, refresh movie data for this movie and update UI when OMDb returns
-            if (!newTitle.isEmpty()) {
-                int fetchYear = 0;
-                bool ok;
-                int y = newYear.toInt(&ok);
-                if (ok)
-                    fetchYear = y;
-                ui->statusbar->showMessage(QString("Refreshing movie data for %1...").arg(newTitle), 3000);
-                if (omdbClient)
-                    omdbClient->fetchMovie(newTitle, fetchYear);
-            }
-
-            QMessageBox::information(this, "Success", "Folder renamed successfully.");
-        } else {
-            auto error = GetLastError();
-            QString errorMsg = QString("Failed to rename folder.\nError code: %1 (0x%2)\n%3\n\nFrom: %4\nTo: %5")
-                                   .arg(error)
-                                   .arg(error, 8, 16, QChar('0'))
-                                   .arg(QString::fromLocal8Bit(strerror(error)))
-                                   .arg(currentPathNative)
-                                   .arg(newPathNative);
-            QMessageBox::warning(this, "Error", errorMsg);
-        } });
-
-    connect(moveFolderAction, &QAction::triggered, this, [=]()
-            {
-        QList<QTableWidgetSelectionRange> ranges = ui->tableWidget->selectedRanges();
-        if (ranges.isEmpty()) {
-            QMessageBox::warning(this, "No Selection", "Please select at least one movie.");
-            return;
-        }
-
-        QDir archiveDir(kArchiveFolderPath);
-        if (!archiveDir.exists() && !archiveDir.mkpath(".")) {
-            QMessageBox::warning(this, "Error", "Failed to create archive folder.");
-            return;
-        }
-
-        int movedCount = 0;
-
-        for (const QTableWidgetSelectionRange &range : ranges) {
-            for (int row = range.topRow(); row <= range.bottomRow(); ++row) {
-                auto fileInfoOpt = getFileInfo(row);
-                if (!fileInfoOpt)
-                    continue;
-
-                const QFileInfo &fileInfo = *fileInfoOpt;
-                QDir currentDir = fileInfo.dir();
-                QString currentPath = currentDir.absolutePath();
-                QString folderName = currentDir.dirName();
-                QString newPath = QDir::cleanPath(archiveDir.filePath(folderName));
-
-                if (QDir(newPath).exists())
-                    continue;
-
-                QString currentPathNative = QDir::toNativeSeparators(currentPath);
-                QString newPathNative = QDir::toNativeSeparators(newPath);
-
-                bool moved = QDir().rename(currentPathNative, newPathNative);
-                if (moved) {
-                    QString newFilePath = newPathNative + QDir::separator() + fileInfo.fileName();
-                    ui->tableWidget->item(row, 0)->setData(FilePathRole, newFilePath);
-                    ++movedCount;
-                }
-            }
-        }
-
-        if (movedCount > 0) {
-            QMessageBox::information(this, "Success", QString("Moved %1 folder(s) to archive.").arg(movedCount));
-        } else {
-            QMessageBox::warning(this, "No Folders Moved", "No folders were moved. They may already exist in the archive.");
-        } });
+    connect(refreshMovieAction, &QAction::triggered, this, &MainWindow::onRefreshMovieClicked);
+    connect(openFolderAction, &QAction::triggered, this, &MainWindow::onOpenFolderClicked);
+    connect(renameFolderAction, &QAction::triggered, this, &MainWindow::onRenameFolderClicked);
+    connect(moveFolderAction, &QAction::triggered, this, &MainWindow::onMoveFolderToArchiveClicked);
 
     menu.exec(ui->tableWidget->viewport()->mapToGlobal(pos));
 }
 
-// ===================== Utility / Helper Functions =====================
+void MainWindow::onOpenFolderClicked()
+{
+    std::optional<QFileInfo> fileInfoOpt = getFileInfoForRow(contextMenuRow);
+    if (!fileInfoOpt)
+    {
+        QMessageBox::warning(this, "Error", "Could not determine file path.");
+        return;
+    }
+    QDesktopServices::openUrl(QUrl::fromLocalFile(fileInfoOpt->absolutePath()));
+}
+
+void MainWindow::onRenameFolderClicked()
+{
+    std::optional<QFileInfo> fileInfoOpt = getFileInfoForRow(contextMenuRow);
+    if (!fileInfoOpt)
+        return;
+
+    const QFileInfo &fileInfo = *fileInfoOpt;
+    QDir parentDir = fileInfo.dir();
+    QString currentPath = parentDir.absolutePath();
+
+    // Read existing movie title/year from table, fall back to parsing the folder name
+    QString title = "";
+    QString year = "";
+    QTableWidgetItem *titleItem = ui->tableWidget->item(contextMenuRow, 0);
+    QTableWidgetItem *yearItem = ui->tableWidget->item(contextMenuRow, 1);
+    if (titleItem)
+        title = titleItem->text().trimmed();
+    if (yearItem)
+        year = yearItem->text().trimmed();
+
+    if (title.isEmpty() || year.isEmpty() || year == "Unknown")
+    {
+        // try parsing the parent folder's name (e.g., "Splitsville (2025)")
+        QPair<QString, QString> parsed = parseFolderName(parentDir.dirName());
+        if (title.isEmpty())
+            title = parsed.first;
+        if (year.isEmpty() || year == "Unknown")
+            year = parsed.second;
+    }
+
+    // Build a small dialog with two fields: Movie name and Year
+    QDialog dlg(this);
+    dlg.setWindowTitle("Rename Folder");
+    dlg.setMinimumWidth(520);
+    QFormLayout form(&dlg);
+
+    QLineEdit *nameEdit = new QLineEdit(title, &dlg);
+    QLineEdit *yearEdit = new QLineEdit(year, &dlg);
+    yearEdit->setValidator(new QIntValidator(1800, 3000, yearEdit));
+    yearEdit->setMaxLength(4);
+
+    form.addRow("Movie name:", nameEdit);
+    form.addRow("Year:", yearEdit);
+
+    QDialogButtonBox *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel,
+                                                     Qt::Horizontal, &dlg);
+    form.addRow(buttons);
+    connect(buttons, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+
+    if (dlg.exec() != QDialog::Accepted)
+        return;
+
+    QString newTitle = nameEdit->text().trimmed();
+    QString newYear = yearEdit->text().trimmed();
+    if (newTitle.isEmpty())
+    {
+        QMessageBox::warning(this, "Error", "Movie name cannot be empty.");
+        return;
+    }
+
+    QString newName;
+    if (!newYear.isEmpty())
+        newName = QString("%1 (%2)").arg(newTitle, newYear);
+    else
+        newName = newTitle;
+    newName = sanitizeForWindowsFolder(newName).replace('\n', ' ').trimmed();
+    if (newName.isEmpty())
+    {
+        QMessageBox::warning(this, "Error", "Invalid folder name after sanitization.");
+        return;
+    }
+
+    QDir baseDir = parentDir;
+    baseDir.cdUp();
+    QString newPath = QDir::cleanPath(baseDir.absoluteFilePath(newName));
+
+    if (QDir(newPath).exists())
+    {
+        QMessageBox::warning(this, "Error", "Target folder already exists.");
+        return;
+    }
+
+    QString newPathNative = QDir::toNativeSeparators(newPath);
+    QString currentPathNative = QDir::toNativeSeparators(currentPath);
+
+    bool renamed = QDir().rename(currentPathNative, newPathNative);
+    if (!renamed)
+    {
+        QProcess elevate;
+        QStringList args = {"/c", "move",
+                            QString("\"%1\"").arg(currentPathNative),
+                            QString("\"%1\"").arg(newPathNative)};
+        elevate.start("cmd.exe", args);
+        elevate.waitForFinished();
+
+        renamed = QDir(newPathNative).exists() && !QDir(currentPathNative).exists();
+    }
+
+    if (renamed)
+    {
+        QString newFilePath = newPathNative + QDir::separator() + fileInfo.fileName();
+        // Update stored file path
+        if (ui->tableWidget->item(contextMenuRow, 0))
+            ui->tableWidget->item(contextMenuRow, 0)->setData(FilePathRole, newFilePath);
+
+        // Update visible UI: title, year and decade
+        if (!newTitle.isEmpty())
+        {
+            if (ui->tableWidget->item(contextMenuRow, 0))
+                ui->tableWidget->item(contextMenuRow, 0)->setText(newTitle);
+        }
+        if (ui->tableWidget->item(contextMenuRow, 1))
+            ui->tableWidget->item(contextMenuRow, 1)->setText(newYear);
+        // Update decade (col 2) if year is numeric
+        QString newDecade = getDecade(newYear);
+        if (ui->tableWidget->item(contextMenuRow, 2))
+            ui->tableWidget->item(contextMenuRow, 2)->setText(newDecade);
+
+        // If any combo boxes depend on decades list, refresh them
+        addComboBoxItemIfNotExist(ui->comboBoxDecade, newDecade);
+
+        // After renaming, refresh movie data for this movie and update UI when OMDb returns
+        if (!newTitle.isEmpty())
+        {
+            int fetchYear = 0;
+            bool ok;
+            int y = newYear.toInt(&ok);
+            if (ok)
+                fetchYear = y;
+            ui->statusbar->showMessage(QString("Refreshing movie data for %1...").arg(newTitle), 3000);
+            if (omdbClient)
+                omdbClient->fetchMovie(newTitle, fetchYear);
+        }
+
+        QMessageBox::information(this, "Success", "Folder renamed successfully.");
+    }
+    else
+    {
+        DWORD error = GetLastError();
+        LPWSTR messageBuffer = nullptr;
+        FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                       nullptr, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&messageBuffer, 0, nullptr);
+        QString errorMessage = messageBuffer ? QString::fromWCharArray(messageBuffer) : QString("Unknown error");
+        if (messageBuffer)
+            LocalFree(messageBuffer);
+
+        QString errorMsg = QString("Failed to rename folder.\nError code: %1 (0x%2)\n%3\n\nFrom: %4\nTo: %5")
+                               .arg(error)
+                               .arg(error, 8, 16, QChar('0'))
+                               .arg(errorMessage.trimmed())
+                               .arg(currentPathNative)
+                               .arg(newPathNative);
+        QMessageBox::warning(this, "Error", errorMsg);
+    }
+}
+
+void MainWindow::onMoveFolderToArchiveClicked()
+{
+    const QString kArchiveFolderPath = "D:/New folder";
+
+    QList<QTableWidgetSelectionRange> ranges = ui->tableWidget->selectedRanges();
+    if (ranges.isEmpty())
+    {
+        QMessageBox::warning(this, "No Selection", "Please select at least one movie.");
+        return;
+    }
+
+    QDir archiveDir(kArchiveFolderPath);
+    if (!archiveDir.exists() && !archiveDir.mkpath("."))
+    {
+        QMessageBox::warning(this, "Error", "Failed to create archive folder.");
+        return;
+    }
+
+    int movedCount = 0;
+
+    for (const QTableWidgetSelectionRange &range : ranges)
+    {
+        for (int row = range.topRow(); row <= range.bottomRow(); ++row)
+        {
+            std::optional<QFileInfo> fileInfoOpt = getFileInfoForRow(row);
+            if (!fileInfoOpt)
+                continue;
+
+            const QFileInfo &fileInfo = *fileInfoOpt;
+            QDir currentDir = fileInfo.dir();
+            QString currentPath = currentDir.absolutePath();
+            QString folderName = currentDir.dirName();
+            QString newPath = QDir::cleanPath(archiveDir.filePath(folderName));
+
+            if (QDir(newPath).exists())
+                continue;
+
+            QString currentPathNative = QDir::toNativeSeparators(currentPath);
+            QString newPathNative = QDir::toNativeSeparators(newPath);
+
+            bool moved = QDir().rename(currentPathNative, newPathNative);
+            if (moved)
+            {
+                QString newFilePath = newPathNative + QDir::separator() + fileInfo.fileName();
+                ui->tableWidget->item(row, 0)->setData(FilePathRole, newFilePath);
+                ++movedCount;
+            }
+        }
+    }
+
+    if (movedCount > 0)
+    {
+        QMessageBox::information(this, "Success", QString("Moved %1 folder(s) to archive.").arg(movedCount));
+    }
+    else
+    {
+        QMessageBox::warning(this, "No Folders Moved", "No folders were moved. They may already exist in the archive.");
+    }
+}
+
+// ========================================================================
+// ACTION BUTTONS
+// ========================================================================
+
+void MainWindow::onOpenFileClicked()
+{
+    QPushButton *btn = qobject_cast<QPushButton *>(sender());
+    if (!btn)
+        return;
+
+    QString filePath = btn->property("filePath").toString();
+    QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
+}
+
+void MainWindow::onImdbButtonClicked()
+{
+    QPushButton *btn = qobject_cast<QPushButton *>(sender());
+    if (!btn)
+        return;
+
+    QString title = btn->property("title").toString();
+    QString year = btn->property("year").toString();
+
+    QPoint center(btn->width() / 2, btn->height() / 2);
+    QPoint viewportPos = btn->mapTo(ui->tableWidget->viewport(), center);
+    QModelIndex idx = ui->tableWidget->indexAt(viewportPos);
+    int clickedRow = idx.isValid() ? idx.row() : -1;
+
+    if (clickedRow >= 0)
+    {
+        QTableWidgetItem *titleItemLocal = ui->tableWidget->item(clickedRow, 0);
+        if (titleItemLocal)
+        {
+            QString imdbId = titleItemLocal->data(ImdbIdRole).toString();
+            if (!imdbId.isEmpty())
+            {
+                QString url = QString("https://www.imdb.com/title/%1/").arg(imdbId);
+                QDesktopServices::openUrl(QUrl(url));
+                return;
+            }
+        }
+    }
+
+    openImdbPage(title, year);
+}
+
+void MainWindow::onPaheButtonClicked()
+{
+    QPushButton *btn = qobject_cast<QPushButton *>(sender());
+    if (!btn)
+        return;
+
+    QString title = btn->property("title").toString();
+    QString year = btn->property("year").toString();
+    openPahePage(title, year);
+}
+
+void MainWindow::cleanupProgressDialog()
+{
+    if (progressDialog)
+    {
+        progressDialog->close();
+        delete progressDialog;
+        progressDialog = nullptr;
+    }
+}
+
+// ========================================================================
+// UTILITY METHODS
+// ========================================================================
 
 void MainWindow::addComboBoxItemIfNotExist(QComboBox *comboBox, const QString &item)
 {
@@ -828,7 +1103,9 @@ void MainWindow::addComboBoxItemsSorted(QComboBox *comboBox, const QSet<QString>
         comboBox->addItem(additionalItem);
 }
 
-// ===================== External Site Integration =====================
+// ========================================================================
+// EXTERNAL NAVIGATION
+// ========================================================================
 
 void MainWindow::openImdbPage(const QString &title, const QString &year)
 {
@@ -844,7 +1121,9 @@ void MainWindow::openPahePage(const QString &title, const QString &year)
     QDesktopServices::openUrl(QUrl(url));
 }
 
-// ===================== Export =====================
+// ========================================================================
+// EXPORT
+// ========================================================================
 
 void MainWindow::exportToExcel()
 {
@@ -892,14 +1171,55 @@ void MainWindow::exportToExcel()
     QMessageBox::information(this, "Export", "Export completed successfully.");
 }
 
-// ===================== OMDB API Integration =====================
+// ========================================================================
+// OMDB API / MOVIE DATA
+// ========================================================================
 
 void MainWindow::onFetchClicked()
 {
     qDebug() << "Fetch button clicked. Reading titles and years from table.";
 
+    // Count how many movies need fetching
+    totalMoviesToFetch = 0;
+    moviesFetched = 0;
+
     for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
     {
+        QTableWidgetItem *titleItem = ui->tableWidget->item(row, 0);
+        if (titleItem && !titleItem->text().trimmed().isEmpty())
+        {
+            totalMoviesToFetch++;
+        }
+    }
+
+    if (totalMoviesToFetch == 0)
+    {
+        QMessageBox::information(this, "No Movies", "No movies found to fetch data for.");
+        return;
+    }
+
+    // Create progress dialog
+    if (progressDialog)
+    {
+        delete progressDialog;
+    }
+
+    progressDialog = new QProgressDialog("Fetching movie data from IMDb...", "Cancel", 0, totalMoviesToFetch, this);
+    progressDialog->setWindowModality(Qt::WindowModal);
+    progressDialog->setMinimumDuration(0);
+    progressDialog->setValue(0);
+    progressDialog->show();
+
+    // Process movies one by one
+    for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
+    {
+        // Check if user cancelled
+        if (progressDialog && progressDialog->wasCanceled())
+        {
+            ui->statusbar->showMessage("Movie data fetch cancelled by user.", 3000);
+            break;
+        }
+
         QTableWidgetItem *titleItem = ui->tableWidget->item(row, 0);
         QTableWidgetItem *yearItem = ui->tableWidget->item(row, 1);
 
@@ -913,13 +1233,42 @@ void MainWindow::onFetchClicked()
 
             if (!title.isEmpty())
             {
-                qDebug() << "Found movie in row" << row << ":" << title << ", year:" << year;
+                qDebug() << "Fetching movie in row" << row << ":" << title << ", year:" << year;
+
+                // Update progress dialog
+                moviesFetched++;
+                if (progressDialog)
+                {
+                    progressDialog->setValue(moviesFetched);
+                    progressDialog->setLabelText(QString("Fetching movie %1 of %2: %3")
+                                                     .arg(moviesFetched)
+                                                     .arg(totalMoviesToFetch)
+                                                     .arg(title));
+                }
+
+                // Fetch the movie (this is async via QNetworkAccessManager)
                 omdbClient->fetchMovie(title, year);
+
+                // Process events to keep UI responsive
+                QCoreApplication::processEvents();
+
+                // Small delay to avoid overwhelming the API
+                QThread::msleep(100);
             }
         }
     }
-}
 
+    // Clean up progress dialog after a short delay
+    if (progressDialog)
+    {
+        progressDialog->setValue(totalMoviesToFetch);
+        QTimer::singleShot(1000, this, &MainWindow::cleanupProgressDialog);
+    }
+
+    ui->statusbar->showMessage(QString("Initiated fetch for %1 movies. Data will update as responses arrive.")
+                                   .arg(totalMoviesToFetch),
+                               5000);
+}
 QString MainWindow::sanitizeForWindowsFolder(const QString &name)
 {
     static const QRegularExpression forbidden(R"([\\/:*?"<>|,.])");
@@ -972,327 +1321,42 @@ void MainWindow::onMovieFetched(const Movie &movie)
     }
 }
 
-void MainWindow::setupColumnVisibilityMenu()
+void MainWindow::onRefreshMovieClicked()
 {
-    // Set up column name mapping
-    columnIndexToName = {
-        {0, "Title"}, {1, "Year"}, {2, "Decade"}, {3, "Resolution"}, {4, "Aspect Ratio"}, {5, "Quality"}, {6, "Size"}, {7, "Duration"}, {8, "Language"}, {9, "Actions"}, {10, "Rated"}, {11, "Rating"}, {12, "Votes"}, {13, "Director"}, {14, "Actors"}, {15, "Writers"}, {16, "Awards"}, {17, "Language"}, {18, "Country"}, {19, "Box Office"}, {20, "Plot"}, {21, "Genre"}};
+    if (contextMenuRow < 0 || contextMenuRow >= ui->tableWidget->rowCount())
+        return;
 
-    // Create a button for column visibility
-    QPushButton *columnVisibilityButton = new QPushButton("Columns", this);
-    ui->toolBar->addWidget(columnVisibilityButton);
+    QTableWidgetItem *titleItem = ui->tableWidget->item(contextMenuRow, 0);
+    QTableWidgetItem *yearItem = ui->tableWidget->item(contextMenuRow, 1);
 
-    // Create a menu for column visibility options
-    QMenu *columnMenu = new QMenu(this);
-    columnVisibilityButton->setMenu(columnMenu);
+    if (!titleItem)
+        return;
 
-    // Add "Select All" option
-    QAction *selectAllAction = columnMenu->addAction("Select All");
-    connect(selectAllAction, &QAction::triggered, this, [this]()
-            {
-        for (int i = 0; i < ui->tableWidget->columnCount(); i++) {
-            columnVisibility[i] = true;
-        }
-        updateColumnVisibility();
-        saveColumnVisibilitySettings(); });
+    QString title = titleItem->text().trimmed();
+    int year = 0;
+    if (yearItem)
+        year = yearItem->text().trimmed().toInt();
 
-    // Add "Deselect All" option
-    QAction *deselectAllAction = columnMenu->addAction("Deselect All");
-    connect(deselectAllAction, &QAction::triggered, this, [this]()
-            {
-        // Always keep Title column visible
-        for (int i = 0; i < ui->tableWidget->columnCount(); i++) {
-            columnVisibility[i] = (i == 0); // Only Title column remains visible
-        }
-        updateColumnVisibility();
-        saveColumnVisibilitySettings(); });
+    if (title.isEmpty())
+        return;
 
-    columnMenu->addSeparator();
+    // Store the pending refresh information
+    pendingRefreshMovieName = title;
+    pendingRefreshMovieYear = year;
 
-    // Add checkboxes for each column
-    for (int i = 0; i < ui->tableWidget->columnCount(); i++)
-    {
-        QString columnName = columnIndexToName.value(i, ui->tableWidget->horizontalHeaderItem(i)->text());
-        QAction *action = columnMenu->addAction(columnName);
-        action->setCheckable(true);
-        action->setChecked(columnVisibility.value(i, true));
-
-        connect(action, &QAction::toggled, this, [this, i](bool checked)
-                {
-            columnVisibility[i] = checked;
-            updateColumnVisibility();
-            saveColumnVisibilitySettings(); });
-    }
+    // Request movie data with forceRefresh=true
+    omdbClient->fetchMovie(title, year, true);
 }
 
-void MainWindow::updateColumnVisibility()
+void MainWindow::onMovieExistsInDatabase(const QString &title, const Movie &existingMovie)
 {
-    // Ensure at least one column (Title) is always visible
-    if (!columnVisibility.value(0, true))
+    bool confirmed = dataRefresher->showOverwriteDialog(title, existingMovie, this);
+
+    if (confirmed)
     {
-        columnVisibility[0] = true;
+        // Re-fetch the movie data
+        omdbClient->fetchMovie(pendingRefreshMovieName, pendingRefreshMovieYear, false);
     }
-
-    // Update column visibility
-    for (int i = 0; i < ui->tableWidget->columnCount(); i++)
-    {
-        bool isVisible = columnVisibility.value(i, true);
-        ui->tableWidget->setColumnHidden(i, !isVisible);
-    }
-
-    // Resize columns to fit content
-    ui->tableWidget->resizeColumnsToContents();
-}
-
-void MainWindow::saveColumnVisibilitySettings()
-{
-    QSettings settings("YourCompany", "VideoBrowserApp");
-    settings.beginGroup("ColumnVisibility");
-
-    // Clear existing settings
-    settings.remove("");
-
-    // Save each column's visibility state
-    for (auto it = columnVisibility.constBegin(); it != columnVisibility.constEnd(); ++it)
-    {
-        settings.setValue(QString::number(it.key()), it.value());
-    }
-
-    settings.endGroup();
-}
-
-void MainWindow::loadColumnVisibilitySettings()
-{
-    QSettings settings("YourCompany", "VideoBrowserApp");
-    settings.beginGroup("ColumnVisibility");
-
-    // Check if settings exist, if not, set all columns to visible by default
-    QStringList keys = settings.childKeys();
-    if (keys.isEmpty())
-    {
-        for (int i = 0; i < ui->tableWidget->columnCount(); i++)
-        {
-            columnVisibility[i] = true;
-        }
-    }
-    else
-    {
-        // Load settings for each column
-        for (int i = 0; i < ui->tableWidget->columnCount(); i++)
-        {
-            bool isVisible = settings.value(QString::number(i), true).toBool();
-            columnVisibility[i] = isVisible;
-        }
-    }
-
-    settings.endGroup();
-
-    // Apply loaded settings
-    updateColumnVisibility();
-}
-
-void MainWindow::setupColumnReorderingMenu()
-{
-    // Create a "Reorder Columns" button
-    QPushButton *reorderButton = new QPushButton("Reorder", this);
-    ui->toolBar->addWidget(reorderButton);
-
-    QMenu *reorderMenu = new QMenu(this);
-    reorderButton->setMenu(reorderMenu);
-
-    // Add "Reset Order" option
-    QAction *resetOrderAction = reorderMenu->addAction("Reset to Default Order");
-    connect(resetOrderAction, &QAction::triggered, this, [this]()
-            {
-        // Reset column order to default
-        QMap<int, int> defaultOrder;
-        for (int i = 0; i < ui->tableWidget->columnCount(); i++) {
-            defaultOrder[i] = i;
-        }
-        
-        // Update maps
-        columnOriginalToCurrentMap.clear();
-        columnCurrentToOriginalMap.clear();
-        for (int i = 0; i < ui->tableWidget->columnCount(); i++) {
-            columnOriginalToCurrentMap[i] = i;
-            columnCurrentToOriginalMap[i] = i;
-        }
-        
-        // Apply column order
-        for (int i = 0; i < ui->tableWidget->columnCount(); i++) {
-            ui->tableWidget->horizontalHeader()->moveSection(
-                ui->tableWidget->horizontalHeader()->visualIndex(i), i);
-        }
-        
-        // Save the default order
-        saveColumnOrderSettings();
-        
-        // Update header labels
-        updateHeaderLabels(); });
-
-    reorderMenu->addSeparator();
-
-    // Add move options for each column
-    for (int i = 0; i < ui->tableWidget->columnCount(); i++)
-    {
-        QString columnName = columnIndexToName.value(i, ui->tableWidget->horizontalHeaderItem(i)->text());
-
-        QMenu *columnMenu = reorderMenu->addMenu(columnName);
-
-        // Move Left action
-        QAction *moveLeftAction = columnMenu->addAction("Move Left");
-        connect(moveLeftAction, &QAction::triggered, this, [this, i]()
-                {
-            int visualIndex = ui->tableWidget->horizontalHeader()->visualIndex(i);
-            if (visualIndex > 0) {
-                reorderColumn(i, visualIndex - 1);
-                saveColumnOrderSettings();
-            } });
-
-        // Move Right action
-        QAction *moveRightAction = columnMenu->addAction("Move Right");
-        connect(moveRightAction, &QAction::triggered, this, [this, i]()
-                {
-            int visualIndex = ui->tableWidget->horizontalHeader()->visualIndex(i);
-            if (visualIndex < ui->tableWidget->columnCount() - 1) {
-                reorderColumn(i, visualIndex + 1);
-                saveColumnOrderSettings();
-            } });
-
-        // Move to Position action
-        QMenu *moveToMenu = columnMenu->addMenu("Move to Position");
-        for (int pos = 0; pos < ui->tableWidget->columnCount(); pos++)
-        {
-            QAction *moveToAction = moveToMenu->addAction(QString::number(pos + 1));
-            connect(moveToAction, &QAction::triggered, this, [this, i, pos]()
-                    {
-                reorderColumn(i, pos);
-                saveColumnOrderSettings(); });
-        }
-    }
-
-    // Make headers also reorderable by drag and drop
-    ui->tableWidget->horizontalHeader()->setSectionsMovable(true);
-
-    // Connect signal when user drags headers to reorder
-    connect(ui->tableWidget->horizontalHeader(), &QHeaderView::sectionMoved,
-            this, [this](int logicalIndex, int oldVisualIndex, int newVisualIndex)
-            {
-        Q_UNUSED(logicalIndex);
-        Q_UNUSED(oldVisualIndex);
-        
-        // Update our mappings
-        columnOriginalToCurrentMap.clear();
-        columnCurrentToOriginalMap.clear();
-        
-        for (int i = 0; i < ui->tableWidget->columnCount(); i++) {
-            int visualIndex = ui->tableWidget->horizontalHeader()->visualIndex(i);
-            columnOriginalToCurrentMap[i] = visualIndex;
-            columnCurrentToOriginalMap[visualIndex] = i;
-        }
-        
-        // Save new order
-        saveColumnOrderSettings(); });
-}
-
-void MainWindow::reorderColumn(int column, int newPosition)
-{
-    int currentVisualIndex = ui->tableWidget->horizontalHeader()->visualIndex(column);
-    ui->tableWidget->horizontalHeader()->moveSection(currentVisualIndex, newPosition);
-
-    // Update our mappings
-    columnOriginalToCurrentMap.clear();
-    columnCurrentToOriginalMap.clear();
-
-    for (int i = 0; i < ui->tableWidget->columnCount(); i++)
-    {
-        int visualIndex = ui->tableWidget->horizontalHeader()->visualIndex(i);
-        columnOriginalToCurrentMap[i] = visualIndex;
-        columnCurrentToOriginalMap[visualIndex] = i;
-    }
-}
-
-void MainWindow::saveColumnOrderSettings()
-{
-    QSettings settings("YourCompany", "VideoBrowserApp");
-    settings.beginGroup("ColumnOrder");
-
-    // Clear existing settings
-    settings.remove("");
-
-    // Save current order mapping
-    for (int i = 0; i < ui->tableWidget->columnCount(); i++)
-    {
-        int visualIndex = ui->tableWidget->horizontalHeader()->visualIndex(i);
-        settings.setValue(QString::number(i), visualIndex);
-    }
-
-    settings.endGroup();
-}
-
-void MainWindow::loadColumnOrderSettings()
-{
-    QSettings settings("YourCompany", "VideoBrowserApp");
-    settings.beginGroup("ColumnOrder");
-
-    // Check if settings exist
-    QStringList keys = settings.childKeys();
-
-    // Initialize with default mapping (identity map)
-    for (int i = 0; i < ui->tableWidget->columnCount(); i++)
-    {
-        columnOriginalToCurrentMap[i] = i;
-        columnCurrentToOriginalMap[i] = i;
-    }
-
-    if (!keys.isEmpty())
-    {
-        // Load custom column order
-        QMap<int, int> loadedOrder;
-
-        for (int i = 0; i < ui->tableWidget->columnCount(); i++)
-        {
-            int visualIndex = settings.value(QString::number(i), i).toInt();
-            loadedOrder[i] = visualIndex;
-        }
-
-        // Apply loaded order
-        // First sort by visual index to ensure correct order
-        QList<int> sortedColumns;
-        for (int i = 0; i < ui->tableWidget->columnCount(); i++)
-        {
-            sortedColumns.append(i);
-        }
-
-        std::sort(sortedColumns.begin(), sortedColumns.end(), [&loadedOrder](int a, int b)
-                  { return loadedOrder[a] < loadedOrder[b]; });
-
-        // Now apply the order
-        for (int i = 0; i < sortedColumns.size(); i++)
-        {
-            int logicalIndex = sortedColumns[i];
-            int currentVisualIndex = ui->tableWidget->horizontalHeader()->visualIndex(logicalIndex);
-            ui->tableWidget->horizontalHeader()->moveSection(currentVisualIndex, i);
-        }
-
-        // Update our mappings
-        for (int i = 0; i < ui->tableWidget->columnCount(); i++)
-        {
-            int visualIndex = ui->tableWidget->horizontalHeader()->visualIndex(i);
-            columnOriginalToCurrentMap[i] = visualIndex;
-            columnCurrentToOriginalMap[visualIndex] = i;
-        }
-    }
-
-    settings.endGroup();
-}
-
-void MainWindow::updateHeaderLabels()
-{
-    QStringList headerLabels = {"Title", "Year", "Decade", "Resolution", "Aspect Ratio", "Quality", "Size", "Duration", "Language",
-                                "Actions", "Rated", "Rating", "Votes", "Director", "Actors", "Writers", "Awards", "Language", "Country", "Box Office", "Plot", "Genre"};
-
-    ui->tableWidget->setHorizontalHeaderLabels(headerLabels);
 }
 
 void MainWindow::loadExternalStylesheet()

@@ -124,6 +124,27 @@ bool MovieDB::movieExists(const QString &title)
     return query.exec() && query.next() && query.value(0).toInt() > 0;
 }
 
+bool MovieDB::deleteMovie(const QString &title)
+{
+    if (!db.isOpen())
+    {
+        qDebug() << "Database is not open";
+        return false;
+    }
+
+    QSqlQuery query(db);
+    query.prepare("DELETE FROM movies WHERE title = ?");
+    query.addBindValue(title);
+
+    if (!query.exec())
+    {
+        qDebug() << "Delete movie error:" << query.lastError().text();
+        return false;
+    }
+
+    return true;
+}
+
 MovieDB::~MovieDB()
 {
     const QString connectionName = db.connectionName();

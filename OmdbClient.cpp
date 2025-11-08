@@ -15,16 +15,38 @@ OmdbClient::~OmdbClient()
 {
 }
 
-void OmdbClient::fetchMovie(const QString &movieName, int year)
+Movie OmdbClient::getExistingMovieData(const QString &movieName)
 {
-    // Check local database first
     if (movieDb && movieDb->movieExists(movieName))
+    {
+        return movieDb->getMovie(movieName);
+    }
+    return Movie(); // Return empty movie if not found
+}
+
+void OmdbClient::fetchMovie(const QString &movieName, int year, bool forceRefresh)
+{
+    // Check local database first (unless force refresh is requested)
+    if (!forceRefresh && movieDb && movieDb->movieExists(movieName))
     {
         Movie movie = movieDb->getMovie(movieName);
         if (!movie.title.isEmpty())
         {
             qDebug() << "Found movie in database:" << movieName;
             emit movieFetched(movie);
+            return;
+        }
+    }
+
+    // If forceRefresh is true and movie exists, emit signal to ask for confirmation
+    if (forceRefresh && movieDb && movieDb->movieExists(movieName))
+    {
+        Movie existingMovie = movieDb->getMovie(movieName);
+        if (!existingMovie.title.isEmpty())
+        {
+            qDebug() << "Movie exists in database, requesting confirmation for refresh:" << movieName;
+            emit movieExistsInDatabase(movieName, existingMovie);
+            // The actual fetch will be triggered after user confirms
             return;
         }
     }

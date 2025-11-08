@@ -5,8 +5,13 @@
 #include <QComboBox>
 #include <QTableWidget>
 #include <QPushButton>
+#include <optional>
+#include <QFileInfo>
+#include <QProgressDialog>
 #include "OmdbClient.h"
 #include "movie.h"
+#include "TableColumnManager.h"
+#include "MovieDataRefresher.h"
 
 namespace Ui
 {
@@ -22,80 +27,110 @@ public:
     ~MainWindow();
 
 protected:
+    // Drag & Drop Events
     void dragEnterEvent(QDragEnterEvent *event) override;
     void dropEvent(QDropEvent *event) override;
 
 private slots:
-    // Core functionality
+    // ===== Video Processing =====
+    void onSelectFolderClicked();
+
+    // ===== OMDb API / Movie Data =====
     void onFetchClicked();
     void onMovieFetched(const Movie &movie);
+    void onRefreshMovieClicked();
+    void onMovieExistsInDatabase(const QString &movieName, const Movie &existingMovie);
 
-    // Filtering / Search / Export
+    // ===== Table Filtering & Search =====
     void filterTable();
     void filterTableRows(const QString &text);
+
+    // ===== Context Menu Actions =====
+    void showContextMenu(const QPoint &pos);
+    void onOpenFolderClicked();
+    void onRenameFolderClicked();
+    void onMoveFolderToArchiveClicked();
+
+    // ===== Action Buttons =====
+    void onOpenFileClicked();
+    void onImdbButtonClicked();
+    void onPaheButtonClicked();
+
+    // ===== Export =====
     void exportToExcel();
 
-    // External navigation
-    void openImdbPage(const QString &title, const QString &year);
-    void openPahePage(const QString &title, const QString &year);
-
-    // UI interaction
-    void showContextMenu(const QPoint &pos);
+    // ===== Utility Slots =====
+    void cleanupProgressDialog();
 
 private:
-    // UI and app state
-    Ui::MainWindow *ui;
-    QTableWidget *movieTable;
-    int currentRow = 0;
-
-    // Data
-    OmdbClient *omdbClient;
-    MovieDB *movieDb;
-
-    // Constants
+    // ===== Constants & Enums =====
     enum CustomRoles
     {
         FilePathRole = Qt::UserRole + 1,
         ImdbIdRole = Qt::UserRole + 2
     };
 
-    // Helpers: ComboBoxes
-    void addComboBoxItemIfNotExist(QComboBox *comboBox, const QString &item);
-    void addComboBoxItemsSorted(QComboBox *comboBox, const QSet<QString> &items, const QString &additionalItem = "");
+    // ===== Data Structures =====
+    struct VideoMetadata
+    {
+        QString resolution;
+        QString aspectRatio;
+        QString quality;
+        QString duration;
+        QString audioLanguage;
+        QString fileSize;
+    };
 
-    // Helpers: Metadata
+    // ===== UI Components =====
+    Ui::MainWindow *ui;
+    QProgressDialog *progressDialog;
+
+    // ===== Helper Classes =====
+    OmdbClient *omdbClient;
+    MovieDB *movieDb;
+    TableColumnManager *columnManager;
+    MovieDataRefresher *dataRefresher;
+
+    // ===== State Variables =====
+    int contextMenuRow;
+    QString pendingRefreshMovieName;
+    int pendingRefreshMovieYear;
+    int totalMoviesToFetch;
+    int moviesFetched;
+
+    // ===== Video Processing Methods =====
+    void processVideos(const QString &path, bool isSingleFile);
+    void processVideos(const QStringList &filePaths);
+    QPair<QString, QString> parseFolderName(const QString &folderName);
+
+    // ===== Video Metadata Methods =====
+    VideoMetadata getVideoMetadataBatch(const QString &filePath);
+    QString runFfprobe(const QStringList &args);
     QString getVideoResolution(const QString &filePath);
     QString getAspectRatio(const QString &resolution);
     QString getVideoQuality(const QString &filePath);
-    QString getDecade(const QString &year);
-    QString getFileSize(const QString &filePath);
     QString getVideoDuration(const QString &filePath);
     QString getAudioLanguage(const QString &filePath);
-    QPair<QString, QString> parseFolderName(const QString &folderName);
-    QString runFfprobe(const QStringList &args);
+    QString getFileSize(const QString &filePath);
+    QString getDecade(const QString &year);
 
-    // Helpers: Utility
+    // ===== UI Widget Creation =====
+    QPushButton *createActionButton(const QString &text, const QString &iconPath,
+                                    const QString &styleSheet, const QString &objectName = "");
+    QWidget *createActionButtonsWidget(const QString &filePath, const QString &title, const QString &year);
+
+    // ===== ComboBox Helpers =====
+    void addComboBoxItemIfNotExist(QComboBox *comboBox, const QString &item);
+    void addComboBoxItemsSorted(QComboBox *comboBox, const QSet<QString> &items,
+                                const QString &additionalItem = "");
+
+    // ===== External Navigation =====
+    void openImdbPage(const QString &title, const QString &year);
+    void openPahePage(const QString &title, const QString &year);
+
+    // ===== Utility Methods =====
     QString sanitizeForWindowsFolder(const QString &name);
-    QString filepath;
-
-    void setupColumnVisibilityMenu();
-    void saveColumnVisibilitySettings();
-    void loadColumnVisibilitySettings();
-    void updateColumnVisibility();
-    QMap<int, QString> columnIndexToName;
-    QMap<int, bool> columnVisibility;
-    QAction *columnVisibilityAction;
-
-    void setupColumnReorderingMenu();
-    void saveColumnOrderSettings();
-    void loadColumnOrderSettings();
-    void reorderColumn(int column, int newPosition);
-    QMap<int, int> columnOriginalToCurrentMap; // Maps original column index to current position
-    QMap<int, int> columnCurrentToOriginalMap; // Maps current position to original column index
-    void updateHeaderLabels();
-    void onSelectFolderClicked();
-    void processVideos(const QString &path, bool isSingleFile);
-    void processVideos(const QStringList &filePaths);
+    std::optional<QFileInfo> getFileInfoForRow(int row);
     void loadExternalStylesheet();
 };
 

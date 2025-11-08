@@ -19,8 +19,8 @@ QTableWidget {
 }
 
 QTableWidget::item {
-    padding: 8px;
-    border-bottom: 1px solid #404040;
+    padding: 10px;
+    border-bottom: 1px solid #353535;
     color: #e0e0e0;
 }
 
@@ -31,26 +31,28 @@ QTableWidget::item:selected {
 }
 
 QTableWidget::item:hover {
-    background-color: #404040;
+    background-color: #383838;
 }
 
 /* Enhanced header styling */
 QHeaderView::section {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #1a1a1a, stop:1 #2a2a2a);
-    color: white;
-    padding: 12px 8px;
+                                stop:0 #2a2a2a, stop:1 #1a1a1a);
+    color: #ffffff;
+    padding: 14px 10px;
     border: none;
     font-weight: bold;
-    font-size: 12px;
+    font-size: 13px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border-bottom: 1px solid #404040;
+    letter-spacing: 1px;
+    border-right: 1px solid #353535;
+    border-bottom: 2px solid #3c5a96;
 }
 
 QHeaderView::section:hover {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                stop:0 #2a2a2a, stop:1 #3a3a3a);
+                                stop:0 #3a3a3a, stop:1 #2a2a2a);
+    color: #3c9cff;
 }
 
 /* Enhanced button styling */
