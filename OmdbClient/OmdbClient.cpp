@@ -4,7 +4,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QMessageBox>
-#include "moviedb.h"
+#include "MovieDatabase/MovieDatabase.h"
 
 OmdbClient::OmdbClient(const QString &apiKey, MovieDB *movieDb, QObject *parent)
     : QObject(parent), apiKey(apiKey), manager(new QNetworkAccessManager(this)), movieDb(movieDb)

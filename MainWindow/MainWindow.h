@@ -8,10 +8,10 @@
 #include <optional>
 #include <QFileInfo>
 #include <QProgressDialog>
-#include "OmdbClient.h"
-#include "movie.h"
-#include "TableColumnManager.h"
-#include "MovieDataRefresher.h"
+#include "OmdbClient/OmdbClient.h"
+#include "Movie/Movie.h"
+#include "TableColumnManager/TableColumnManager.h"
+#include "MovieDataRefresher/MovieDataRefresher.h"
 
 namespace Ui
 {

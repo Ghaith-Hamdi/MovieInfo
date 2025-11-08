@@ -3,23 +3,23 @@ QT += core gui widgets network concurrent sql
 CONFIG += c++17
 
 SOURCES += \
-    OmdbClient.cpp \
+    OmdbClient/OmdbClient.cpp \
     main.cpp \
-    moviedb.cpp \
-    mainwindow.cpp \
-    TableColumnManager.cpp \
-    MovieDataRefresher.cpp
+    MovieDatabase/MovieDatabase.cpp \
+    MainWindow/MainWindow.cpp \
+    TableColumnManager/TableColumnManager.cpp \
+    MovieDataRefresher/MovieDataRefresher.cpp
 
 HEADERS += \
-    OmdbClient.h \
-    moviedb.h \
-    mainwindow.h \
-    movie.h \
-    TableColumnManager.h \
-    MovieDataRefresher.h
+    OmdbClient/OmdbClient.h \
+    MovieDatabase/MovieDatabase.h \
+    MainWindow/MainWindow.h \
+    Movie/Movie.h \
+    TableColumnManager/TableColumnManager.h \
+    MovieDataRefresher/MovieDataRefresher.h
 
 FORMS += \
-    mainwindow.ui
+    MainWindow/MainWindow.ui
 
 # Deployment rules
 unix:!android {

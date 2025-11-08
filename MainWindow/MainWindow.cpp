@@ -1,7 +1,7 @@
-#include "mainwindow.h"
-#include "ui_mainwindow.h"
-#include "TableColumnManager.h"
-#include "MovieDataRefresher.h"
+#include "MainWindow.h"
+#include "ui_MainWindow.h"
+#include "TableColumnManager/TableColumnManager.h"
+#include "MovieDataRefresher/MovieDataRefresher.h"
 
 #include <QAction>
 #include <QComboBox>

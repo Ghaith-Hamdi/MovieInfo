@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QSqlDatabase>
 #include <QStringList>
-#include "movie.h"
+#include "Movie/Movie.h"
 
 class MovieDB : public QObject
 {

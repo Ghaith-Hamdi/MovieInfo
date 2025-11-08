@@ -1,4 +1,4 @@
-#include "moviedb.h"
+#include "MovieDatabase.h"
 #include <QSqlQuery>
 #include <QSqlError>
 #include <QDebug>

@@ -11,8 +11,8 @@
 #include <QTableWidget>
 #include <QThreadPool>
 #include <QtConcurrent>
-#include <moviedb.h>
-#include "movie.h"
+#include <MovieDatabase/MovieDatabase.h>
+#include "Movie/Movie.h"
 
 class OmdbClient : public QObject
 {

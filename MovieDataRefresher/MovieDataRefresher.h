@@ -3,9 +3,9 @@
 
 #include <QObject>
 #include <QWidget>
-#include "movie.h"
-#include "moviedb.h"
-#include "OmdbClient.h"
+#include "Movie/Movie.h"
+#include "MovieDatabase/MovieDatabase.h"
+#include "OmdbClient/OmdbClient.h"
 
 class QStatusBar;
 
