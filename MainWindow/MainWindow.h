@@ -128,12 +128,6 @@ private:
     // ===== Video Metadata Methods =====
     VideoMetadata getVideoMetadataBatch(const QString &filePath);
     QString runFfprobe(const QStringList &args);
-    QString getVideoResolution(const QString &filePath);
-    QString getAspectRatio(const QString &resolution);
-    QString getVideoQuality(const QString &filePath);
-    QString getVideoDuration(const QString &filePath);
-    QString getAudioLanguage(const QString &filePath);
-    QString getFileSize(const QString &filePath);
     QString getDecade(const QString &year);
 
     // ===== UI Widget Creation =====
@@ -156,7 +150,6 @@ private:
     void loadExternalStylesheet();
     QString buildFolderPath(const QString &drive, int year);
     bool meetsHighQualityCriteria(int votes, double rating);
-    void sortMoviesByGroup();
 };
 
 #endif // MAINWINDOW_H

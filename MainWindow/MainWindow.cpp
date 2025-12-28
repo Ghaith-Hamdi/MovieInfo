@@ -695,68 +695,6 @@ MainWindow::VideoMetadata MainWindow::getVideoMetadataBatch(const QString &fileP
     return metadata;
 }
 
-QString MainWindow::getVideoResolution(const QString &filePath)
-{
-    QString output = runFfprobe({"-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", filePath});
-    return output.isEmpty() ? "Unknown" : output.replace(",", "x");
-}
-
-QString MainWindow::getAspectRatio(const QString &resolution)
-{
-    if (resolution == "Unknown")
-        return "Unknown";
-
-    QStringList parts = resolution.split("x");
-    if (parts.size() != 2)
-        return "Unknown";
-
-    bool ok1, ok2;
-    int width = parts[0].toInt(&ok1);
-    int height = parts[1].toInt(&ok2);
-    if (!ok1 || !ok2 || height == 0)
-        return "Unknown";
-
-    double ratio = static_cast<double>(width) / height;
-    return QString::number(ratio, 'f', 2);
-}
-
-QString MainWindow::getVideoQuality(const QString &filePath)
-{
-    QString fileName = QFileInfo(filePath).fileName().toLower();
-    if (fileName.contains("2160p") || fileName.contains("4k"))
-        return "4K";
-    if (fileName.contains("1080p"))
-        return "1080p";
-    if (fileName.contains("720p"))
-        return "720p";
-    return "Unknown";
-}
-
-QString MainWindow::getFileSize(const QString &filePath)
-{
-    QFileInfo info(filePath);
-    double sizeInGB = info.size() / (1024.0 * 1024.0 * 1024.0);
-    return QString::number(sizeInGB, 'f', 2) + " GB";
-}
-
-QString MainWindow::getVideoDuration(const QString &filePath)
-{
-    bool ok;
-    int seconds = runFfprobe({"-v", "error", "-select_streams", "v:0", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", filePath}).toDouble(&ok);
-    if (!ok)
-        return "Unknown";
-    int h = seconds / 3600;
-    int m = (seconds % 3600) / 60;
-    int s = seconds % 60;
-    return QString("%1:%2:%3").arg(h, 2, 10, QChar('0')).arg(m, 2, 10, QChar('0')).arg(s, 2, 10, QChar('0'));
-}
-
-QString MainWindow::getAudioLanguage(const QString &filePath)
-{
-    QString lang = runFfprobe({"-v", "error", "-select_streams", "a:0", "-show_entries", "stream_tags=language", "-of", "default=noprint_wrappers=1:nokey=1", filePath});
-    return lang.isEmpty() ? "Unknown" : lang;
-}
-
 QPair<QString, QString> MainWindow::parseFolderName(const QString &folderName)
 {
     QRegularExpression re("(.+?) \\((\\d{4})\\)");
