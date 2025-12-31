@@ -129,98 +129,38 @@ MainWindow::MainWindow(QWidget *parent)
     // Add drive & year selection controls to toolbar
     ui->toolBar->addSeparator();
 
-    QLabel *driveLabel = new QLabel(" Drive: ", this);
-    driveLabel->setStyleSheet("QLabel { color: #c9d1d9; font-weight: 600; }");
-    ui->toolBar->addWidget(driveLabel);
-
     driveComboBox = new QComboBox(this);
     driveComboBox->addItems({"D:\\", "E:\\"});
-    driveComboBox->setMinimumWidth(80);
-    driveComboBox->setToolTip("Select drive where movies are stored");
+    driveComboBox->setMinimumWidth(70);
+    driveComboBox->setToolTip("Select drive");
     ui->toolBar->addWidget(driveComboBox);
 
-    QLabel *yearLabel = new QLabel(" Year: ", this);
-    yearLabel->setStyleSheet("QLabel { color: #c9d1d9; font-weight: 600; }");
-    ui->toolBar->addWidget(yearLabel);
-
     yearLineEdit = new QLineEdit(this);
-    yearLineEdit->setPlaceholderText("e.g., 2023");
+    yearLineEdit->setPlaceholderText("Year");
     yearLineEdit->setMaxLength(4);
-    yearLineEdit->setMinimumWidth(100);
-    yearLineEdit->setToolTip("Enter year (e.g., 2023, 1994)");
+    yearLineEdit->setMinimumWidth(70);
+    yearLineEdit->setMaximumWidth(80);
+    yearLineEdit->setToolTip("Enter year (e.g., 2023)");
     ui->toolBar->addWidget(yearLineEdit);
 
-    fetchByDriveYearButton = new QPushButton("📁 Fetch", this);
-    fetchByDriveYearButton->setToolTip("Fetch movies from selected drive and year");
-    fetchByDriveYearButton->setMinimumWidth(100);
+    fetchByDriveYearButton = new QPushButton("Load", this);
+    fetchByDriveYearButton->setToolTip("Load movies from selected drive and year");
+    fetchByDriveYearButton->setMinimumWidth(70);
     ui->toolBar->addWidget(fetchByDriveYearButton);
 
     ui->toolBar->addSeparator();
 
-    showMoviesToMoveButton = new QPushButton("🔄 Show Movies to Move", this);
-    showMoviesToMoveButton->setToolTip("Show movies that need to be moved to the correct drive");
-    showMoviesToMoveButton->setMinimumWidth(150);
-    showMoviesToMoveButton->setStyleSheet(
-        "QPushButton {"
-        "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #a371f7, stop:1 #8957e5);"
-        "    color: white;"
-        "    border: 1px solid #b392f0;"
-        "    border-radius: 6px;"
-        "    padding: 6px 12px;"
-        "    font-weight: bold;"
-        "}"
-        "QPushButton:hover {"
-        "    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #b392f0, stop:1 #a371f7);"
-        "}"
-        "QPushButton:pressed {"
-        "    background: #8957e5;"
-        "}");
+    showMoviesToMoveButton = new QPushButton("To Move", this);
+    showMoviesToMoveButton->setToolTip("Show movies that need to be relocated");
+    showMoviesToMoveButton->setMinimumWidth(80);
     ui->toolBar->addWidget(showMoviesToMoveButton);
 
     ui->toolBar->addSeparator();
 
-    QPushButton *settingsButton = new QPushButton("⚙️ Settings", this);
-    settingsButton->setToolTip("Open application settings");
-    settingsButton->setMinimumWidth(100);
-    settingsButton->setStyleSheet(
-        "QPushButton {"
-        "    background-color: #30363d;"
-        "    color: #c9d1d9;"
-        "    border: 1px solid #484f58;"
-        "    border-radius: 6px;"
-        "    padding: 6px 12px;"
-        "    font-weight: bold;"
-        "}"
-        "QPushButton:hover {"
-        "    background-color: #484f58;"
-        "    border-color: #6e7681;"
-        "}"
-        "QPushButton:pressed {"
-        "    background-color: #21262d;"
-        "}");
-    ui->toolBar->addWidget(settingsButton);
-
-    ui->toolBar->addSeparator();
-
-    QPushButton *clearTableButton = new QPushButton("🗑️ Clear Table", this);
-    clearTableButton->setToolTip("Clear all movies from the table");
-    clearTableButton->setMinimumWidth(110);
-    clearTableButton->setStyleSheet(
-        "QPushButton {"
-        "    background-color: #8b0000;"
-        "    color: white;"
-        "    border: 1px solid #b30000;"
-        "    border-radius: 6px;"
-        "    padding: 6px 12px;"
-        "    font-weight: bold;"
-        "}"
-        "QPushButton:hover {"
-        "    background-color: #a50000;"
-        "    border-color: #cc0000;"
-        "}"
-        "QPushButton:pressed {"
-        "    background-color: #6b0000;"
-        "}");
+    QPushButton *clearTableButton = new QPushButton("Clear", this);
+    clearTableButton->setToolTip("Clear all movies from table");
+    clearTableButton->setMinimumWidth(60);
+    clearTableButton->setObjectName("clearTableButton");
     ui->toolBar->addWidget(clearTableButton);
 
     connect(ui->tableWidget, &QTableWidget::customContextMenuRequested, this, &MainWindow::showContextMenu);
@@ -244,10 +184,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(omdbClient, &OmdbClient::movieFetched, this, &MainWindow::onMovieFetched);
     connect(omdbClient, &OmdbClient::movieFetchedFromDatabase, this, &MainWindow::onMovieFetchedFromDatabase);
     connect(omdbClient, &OmdbClient::movieExistsInDatabase, this, &MainWindow::onMovieExistsInDatabase);
-    connect(ui->fetchButton, &QPushButton::clicked, this, &MainWindow::onFetchClicked);
     connect(fetchByDriveYearButton, &QPushButton::clicked, this, &MainWindow::onFetchByDriveYearClicked);
     connect(showMoviesToMoveButton, &QPushButton::clicked, this, &MainWindow::onShowMoviesToMoveClicked);
-    connect(settingsButton, &QPushButton::clicked, this, &MainWindow::onSettingsClicked);
     connect(clearTableButton, &QPushButton::clicked, this, &MainWindow::onClearTableClicked);
 
     // Add tooltips for better user experience
@@ -256,11 +194,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->comboBoxDecade->setToolTip("Filter movies by release decade");
     ui->comboBoxAspectRatio->setToolTip("Filter movies by aspect ratio");
     ui->selectFolderButton->setToolTip("Select a folder containing video files to add to your library");
-    ui->fetchButton->setToolTip("Fetch additional movie information from IMDb for selected movies");
     ui->exportButton->setToolTip("Export the current movie library to an Excel file");
 
     // Add status bar message
-    ui->statusbar->showMessage("Ready to process videos. Drag and drop files or use 'Select Folder' button.");
+    ui->statusbar->showMessage("Ready - drag files or use Add Folder to start");
 
     // Load external stylesheet for additional styling
     loadExternalStylesheet();
@@ -369,71 +306,37 @@ QPushButton *MainWindow::createActionButton(const QString &text, const QString &
 
 QWidget *MainWindow::createActionButtonsWidget(const QString &filePath, const QString &title, const QString &year)
 {
-    const QString openButtonStyle =
+    // Unified subtle button style
+    const QString baseButtonStyle =
         "QPushButton {"
-        "    background-color: #2e7d32;"
-        "    color: white;"
-        "    border: none;"
-        "    padding: 6px 12px;"
+        "    background-color: #21262d;"
+        "    color: #c9d1d9;"
+        "    border: 1px solid #30363d;"
+        "    padding: 4px 8px;"
         "    border-radius: 4px;"
         "    font-size: 11px;"
-        "    font-weight: bold;"
-        "    min-width: 60px;"
+        "    min-width: 45px;"
         "}"
         "QPushButton:hover {"
-        "    background-color: #388e3c;"
+        "    background-color: #30363d;"
+        "    color: #e6edf3;"
+        "    border-color: #484f58;"
         "}"
         "QPushButton:pressed {"
-        "    background-color: #1b5e20;"
+        "    background-color: #161b22;"
         "}";
 
-    const QString imdbButtonStyle =
-        "QPushButton {"
-        "    background-color: #f57c00;"
-        "    color: white;"
-        "    border: none;"
-        "    padding: 6px 12px;"
-        "    border-radius: 4px;"
-        "    font-size: 11px;"
-        "    font-weight: bold;"
-        "    min-width: 60px;"
-        "}"
-        "QPushButton:hover {"
-        "    background-color: #ff8f00;"
-        "}"
-        "QPushButton:pressed {"
-        "    background-color: #e65100;"
-        "}";
-
-    const QString paheButtonStyle =
-        "QPushButton {"
-        "    background-color: #1976d2;"
-        "    color: white;"
-        "    border: none;"
-        "    padding: 6px 12px;"
-        "    border-radius: 4px;"
-        "    font-size: 11px;"
-        "    font-weight: bold;"
-        "    min-width: 60px;"
-        "}"
-        "QPushButton:hover {"
-        "    background-color: #1565c0;"
-        "}"
-        "QPushButton:pressed {"
-        "    background-color: #0d47a1;"
-        "}";
-
-    QPushButton *openButton = createActionButton("Open", "icons/open.png", openButtonStyle);
+    QPushButton *openButton = createActionButton("Open", "icons/open.png", baseButtonStyle);
     openButton->setProperty("filePath", filePath);
     connect(openButton, &QPushButton::clicked, this, &MainWindow::onOpenFileClicked);
 
-    QPushButton *imdbButton = createActionButton("IMDb", "icons/imdb.png", imdbButtonStyle, "imdbButton");
+    QPushButton *imdbButton = createActionButton("IMDb", "icons/imdb.png", baseButtonStyle, "imdbButton");
     imdbButton->setToolTip("Search on IMDb");
     imdbButton->setProperty("title", title);
     imdbButton->setProperty("year", year);
     connect(imdbButton, &QPushButton::clicked, this, &MainWindow::onImdbButtonClicked);
 
-    QPushButton *paheButton = createActionButton("Pahe", "icons/pahe.png", paheButtonStyle);
+    QPushButton *paheButton = createActionButton("Pahe", "icons/pahe.png", baseButtonStyle);
     paheButton->setProperty("title", title);
     paheButton->setProperty("year", year);
     connect(paheButton, &QPushButton::clicked, this, &MainWindow::onPaheButtonClicked);
@@ -443,7 +346,7 @@ QWidget *MainWindow::createActionButtonsWidget(const QString &filePath, const QS
     layout->addWidget(openButton);
     layout->addWidget(imdbButton);
     layout->addWidget(paheButton);
-    layout->setContentsMargins(4, 2, 4, 2);
+    layout->setContentsMargins(2, 2, 2, 2);
     layout->setSpacing(4);
 
     return buttonsWidget;
@@ -478,8 +381,10 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
     {
         progressDialog = new QProgressDialog("Processing video files...", "Cancel", 0, filesToProcess.size(), this);
         progressDialog->setWindowModality(Qt::WindowModal);
-        progressDialog->setMinimumDuration(500);
+        progressDialog->setMinimumWidth(400);
+        progressDialog->setMinimumDuration(0);
         progressDialog->setValue(0);
+        progressDialog->show();
     }
 
     int processedCount = 0;
@@ -549,10 +454,15 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
 
     // Update status bar with processing results
     int totalFiles = filesToProcess.size();
-    ui->statusbar->showMessage(QString("Processed %1 video files. Total movies in library: %2")
-                                   .arg(totalFiles)
-                                   .arg(ui->tableWidget->rowCount()),
-                               5000);
+    ui->statusbar->showMessage(QString("Processed %1 video files. Fetching movie data...")
+                                   .arg(totalFiles),
+                               2000);
+
+    // Automatically fetch movie data after processing videos
+    if (totalFiles > 0)
+    {
+        QTimer::singleShot(500, this, &MainWindow::onFetchClicked);
+    }
 }
 
 // ========================================================================
@@ -1066,7 +976,7 @@ void MainWindow::onImdbButtonClicked()
             if (!imdbId.isEmpty())
             {
                 QString url = QString("https://www.imdb.com/title/%1/").arg(imdbId);
-                QDesktopServices::openUrl(QUrl(url));
+                QProcess::startDetached("cmd", QStringList() << "/c" << "start" << "firefox" << url);
                 return;
             }
         }
@@ -1094,9 +1004,6 @@ void MainWindow::cleanupProgressDialog()
         delete progressDialog;
         progressDialog = nullptr;
     }
-
-    // Show fetch summary if enabled in settings
-    showFetchSummary();
 }
 
 // ========================================================================
@@ -1156,14 +1063,14 @@ void MainWindow::openImdbPage(const QString &title, const QString &year)
 {
     QString name = title + " " + year;
     QString url = "https://www.imdb.com/find/?q=" + QUrl::toPercentEncoding(name);
-    QDesktopServices::openUrl(QUrl(url));
+    QProcess::startDetached("cmd", QStringList() << "/c" << "start" << "firefox" << url);
 }
 
 void MainWindow::openPahePage(const QString &title, const QString &year)
 {
     QString name = title + " " + year;
     QString url = "https://pahe.ink/?s=" + QUrl::toPercentEncoding(name);
-    QDesktopServices::openUrl(QUrl(url));
+    QProcess::startDetached("cmd", QStringList() << "/c" << "start" << "firefox" << url);
 }
 
 // ========================================================================
@@ -1222,7 +1129,7 @@ void MainWindow::exportToExcel()
 
 void MainWindow::onFetchClicked()
 {
-    qDebug() << "Fetch button clicked. Reading titles and years from table.";
+    qDebug() << "Fetching movie data automatically...";
 
     // Count how many movies need fetching
     totalMoviesToFetch = 0;
@@ -1242,8 +1149,7 @@ void MainWindow::onFetchClicked()
 
     if (totalMoviesToFetch == 0)
     {
-        QMessageBox::information(this, "No Movies", "No movies found to fetch data for.");
-        return;
+        return; // No movies to fetch, just return silently
     }
 
     // Create progress dialog
@@ -1252,8 +1158,9 @@ void MainWindow::onFetchClicked()
         delete progressDialog;
     }
 
-    progressDialog = new QProgressDialog("Fetching movie data from IMDb...", "Cancel", 0, totalMoviesToFetch, this);
+    progressDialog = new QProgressDialog("Fetching movie data...", "Cancel", 0, totalMoviesToFetch, this);
     progressDialog->setWindowModality(Qt::WindowModal);
+    progressDialog->setMinimumWidth(400);
     progressDialog->setMinimumDuration(0);
     progressDialog->setValue(0);
     progressDialog->show();

@@ -7,323 +7,225 @@
 				<x>0</x>
 				<y>0</y>
 				<width>1600</width>
-				<height>1000</height>
+				<height>900</height>
 			</rect>
 		</property>
 		<property name="windowTitle">
-			<string>🎬 MovieInfo - Video Library Manager</string>
+			<string>MovieInfo - Video Library Manager</string>
 		</property>
 		<widget class="QWidget" name="centralwidget">
 			<layout class="QVBoxLayout" name="verticalLayout_3">
 				<property name="spacing">
-					<number>20</number>
+					<number>12</number>
 				</property>
 				<property name="leftMargin">
-					<number>24</number>
+					<number>16</number>
 				</property>
 				<property name="topMargin">
-					<number>24</number>
+					<number>12</number>
 				</property>
 				<property name="rightMargin">
-					<number>24</number>
+					<number>16</number>
 				</property>
 				<property name="bottomMargin">
-					<number>24</number>
+					<number>12</number>
 				</property>
+				<!-- Search and Filter Bar - Single Row -->
 				<item>
-					<widget class="QGroupBox" name="searchGroupBox">
-						<property name="title">
-							<string>🔍  SEARCH &amp; FILTER</string>
+					<layout class="QHBoxLayout" name="searchFilterLayout">
+						<property name="spacing">
+							<number>12</number>
 						</property>
-						<layout class="QVBoxLayout" name="searchLayout">
-							<property name="spacing">
-								<number>16</number>
-							</property>
-							<item>
-								<widget class="QLineEdit" name="searchLineEdit">
-									<property name="placeholderText">
-										<string>🔎  Search by title, genre, or actor...</string>
-									</property>
-									<property name="toolTip">
-										<string>Type to filter your movie collection instantly</string>
-									</property>
-								</widget>
-							</item>
-							<item>
-								<layout class="QHBoxLayout" name="filterLayout">
-									<property name="spacing">
-										<number>18</number>
-									</property>
-									<item>
-										<widget class="QLabel" name="qualityLabel">
-											<property name="text">
-												<string>Quality:</string>
-											</property>
-											<property name="alignment">
-												<set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-											</property>
-											<property name="minimumSize">
-												<size>
-													<width>90</width>
-													<height>0</height>
-												</size>
-											</property>
-										</widget>
-									</item>
-									<item>
-										<widget class="QComboBox" name="comboBoxQuality">
-											<property name="minimumSize">
-												<size>
-													<width>140</width>
-													<height>0</height>
-												</size>
-											</property>
-											<property name="toolTip">
-												<string>Filter by video quality</string>
-											</property>
-										</widget>
-									</item>
-									<item>
-										<widget class="QLabel" name="decadeLabel">
-											<property name="text">
-												<string>Decade:</string>
-											</property>
-											<property name="alignment">
-												<set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-											</property>
-											<property name="minimumSize">
-												<size>
-													<width>90</width>
-													<height>0</height>
-												</size>
-											</property>
-										</widget>
-									</item>
-									<item>
-										<widget class="QComboBox" name="comboBoxDecade">
-											<property name="minimumSize">
-												<size>
-													<width>140</width>
-													<height>0</height>
-												</size>
-											</property>
-											<property name="toolTip">
-												<string>Filter by release decade</string>
-											</property>
-										</widget>
-									</item>
-									<item>
-										<widget class="QLabel" name="aspectLabel">
-											<property name="text">
-												<string>Aspect Ratio:</string>
-											</property>
-											<property name="alignment">
-												<set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-											</property>
-											<property name="minimumSize">
-												<size>
-													<width>90</width>
-													<height>0</height>
-												</size>
-											</property>
-										</widget>
-									</item>
-									<item>
-										<widget class="QComboBox" name="comboBoxAspectRatio">
-											<property name="minimumSize">
-												<size>
-													<width>140</width>
-													<height>0</height>
-												</size>
-											</property>
-											<property name="toolTip">
-												<string>Filter by aspect ratio</string>
-											</property>
-										</widget>
-									</item>
-									<item>
-										<spacer name="horizontalSpacer">
-											<property name="orientation">
-												<enum>Qt::Horizontal</enum>
-											</property>
-											<property name="sizeHint" stdset="0">
-												<size>
-													<width>40</width>
-													<height>20</height>
-												</size>
-											</property>
-										</spacer>
-									</item>
-									<item>
-										<widget class="QPushButton" name="clearFiltersButton">
-											<property name="text">
-												<string>✕  Clear Filters</string>
-											</property>
-											<property name="minimumSize">
-												<size>
-													<width>140</width>
-													<height>0</height>
-												</size>
-											</property>
-											<property name="toolTip">
-												<string>Reset all filters to show entire library</string>
-											</property>
-										</widget>
-									</item>
-								</layout>
-							</item>
-						</layout>
+						<item>
+							<widget class="QLineEdit" name="searchLineEdit">
+								<property name="placeholderText">
+									<string>Search movies...</string>
+								</property>
+								<property name="minimumSize">
+									<size>
+										<width>250</width>
+										<height>36</height>
+									</size>
+								</property>
+								<property name="toolTip">
+									<string>Search by title, genre, actor, or director</string>
+								</property>
+							</widget>
+						</item>
+						<item>
+							<widget class="QComboBox" name="comboBoxQuality">
+								<property name="minimumSize">
+									<size>
+										<width>100</width>
+										<height>36</height>
+									</size>
+								</property>
+								<property name="toolTip">
+									<string>Filter by quality</string>
+								</property>
+							</widget>
+						</item>
+						<item>
+							<widget class="QComboBox" name="comboBoxDecade">
+								<property name="minimumSize">
+									<size>
+										<width>100</width>
+										<height>36</height>
+									</size>
+								</property>
+								<property name="toolTip">
+									<string>Filter by decade</string>
+								</property>
+							</widget>
+						</item>
+						<item>
+							<widget class="QComboBox" name="comboBoxAspectRatio">
+								<property name="minimumSize">
+									<size>
+										<width>110</width>
+										<height>36</height>
+									</size>
+								</property>
+								<property name="toolTip">
+									<string>Filter by aspect ratio</string>
+								</property>
+							</widget>
+						</item>
+						<item>
+							<widget class="QPushButton" name="clearFiltersButton">
+								<property name="text">
+									<string>Clear</string>
+								</property>
+								<property name="minimumSize">
+									<size>
+										<width>70</width>
+										<height>36</height>
+									</size>
+								</property>
+								<property name="toolTip">
+									<string>Reset all filters</string>
+								</property>
+							</widget>
+						</item>
+						<item>
+							<spacer name="horizontalSpacer">
+								<property name="orientation">
+									<enum>Qt::Horizontal</enum>
+								</property>
+								<property name="sizeHint" stdset="0">
+									<size>
+										<width>40</width>
+										<height>20</height>
+									</size>
+								</property>
+							</spacer>
+						</item>
+						<item>
+							<widget class="QLabel" name="countLabel">
+								<property name="text">
+									<string>0 movies</string>
+								</property>
+							</widget>
+						</item>
+					</layout>
+				</item>
+				<!-- Main Table - Takes most of the space -->
+				<item>
+					<widget class="QTableWidget" name="tableWidget">
+						<property name="sizePolicy">
+							<sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+								<horstretch>0</horstretch>
+								<verstretch>1</verstretch>
+							</sizepolicy>
+						</property>
+						<property name="sizeAdjustPolicy">
+							<enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents</enum>
+						</property>
+						<property name="alternatingRowColors">
+							<bool>true</bool>
+						</property>
+						<property name="selectionBehavior">
+							<enum>QAbstractItemView::SelectRows</enum>
+						</property>
+						<property name="sortingEnabled">
+							<bool>true</bool>
+						</property>
+						<property name="cornerButtonEnabled">
+							<bool>false</bool>
+						</property>
+						<property name="showGrid">
+							<bool>false</bool>
+						</property>
 					</widget>
 				</item>
+				<!-- Bottom Action Bar -->
 				<item>
-					<widget class="QGroupBox" name="tableGroupBox">
-						<property name="title">
-							<string>📚  VIDEO LIBRARY</string>
+					<layout class="QHBoxLayout" name="actionsLayout">
+						<property name="spacing">
+							<number>10</number>
 						</property>
-						<layout class="QVBoxLayout" name="tableLayout">
-							<property name="spacing">
-								<number>14</number>
-							</property>
-							<item>
-								<layout class="QHBoxLayout" name="tableInfoLayout">
-									<item>
-										<widget class="QLabel" name="countLabel">
-											<property name="text">
-												<string>📊  0 movies</string>
-											</property>
-											<property name="styleSheet">
-												<string notr="true">QLabel { color: #6e7681; font-size: 13px; font-style: italic; }</string>
-											</property>
-										</widget>
-									</item>
-									<item>
-										<spacer name="horizontalSpacer_3">
-											<property name="orientation">
-												<enum>Qt::Horizontal</enum>
-											</property>
-											<property name="sizeHint" stdset="0">
-												<size>
-													<width>40</width>
-													<height>20</height>
-												</size>
-											</property>
-										</spacer>
-									</item>
-								</layout>
-							</item>
-							<item>
-								<widget class="QTableWidget" name="tableWidget">
-									<property name="sizeAdjustPolicy">
-										<enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents</enum>
-									</property>
-									<property name="alternatingRowColors">
-										<bool>true</bool>
-									</property>
-									<property name="selectionBehavior">
-										<enum>QAbstractItemView::SelectRows</enum>
-									</property>
-									<property name="sortingEnabled">
-										<bool>true</bool>
-									</property>
-									<property name="cornerButtonEnabled">
-										<bool>false</bool>
-									</property>
-									<property name="showGrid">
-										<bool>false</bool>
-									</property>
-								</widget>
-							</item>
-						</layout>
-					</widget>
-				</item>
-				<item>
-					<widget class="QGroupBox" name="actionsGroupBox">
-						<property name="title">
-							<string>⚡  ACTIONS</string>
-						</property>
-						<layout class="QHBoxLayout" name="actionsLayout">
-							<property name="spacing">
-								<number>18</number>
-							</property>
-							<item>
-								<widget class="QPushButton" name="selectFolderButton">
-									<property name="text">
-										<string>📁  Select Folder</string>
-									</property>
-									<property name="minimumSize">
-										<size>
-											<width>160</width>
-											<height>46</height>
-										</size>
-									</property>
-									<property name="toolTip">
-										<string>Browse and select a folder containing video files</string>
-									</property>
-								</widget>
-							</item>
-							<item>
-								<widget class="QPushButton" name="fetchButton">
-									<property name="text">
-										<string>🎬  Fetch Movie Data</string>
-									</property>
-									<property name="minimumSize">
-										<size>
-											<width>180</width>
-											<height>46</height>
-										</size>
-									</property>
-									<property name="toolTip">
-										<string>Download comprehensive movie information from online databases</string>
-									</property>
-								</widget>
-							</item>
-							<item>
-								<widget class="QPushButton" name="exportButton">
-									<property name="text">
-										<string>📊  Export to Excel</string>
-									</property>
-									<property name="minimumSize">
-										<size>
-											<width>160</width>
-											<height>46</height>
-										</size>
-									</property>
-									<property name="toolTip">
-										<string>Export your library data to an Excel/CSV spreadsheet</string>
-									</property>
-								</widget>
-							</item>
-							<item>
-								<widget class="QPushButton" name="refreshButton">
-									<property name="text">
-										<string>🔄  Refresh</string>
-									</property>
-									<property name="minimumSize">
-										<size>
-											<width>130</width>
-											<height>46</height>
-										</size>
-									</property>
-									<property name="toolTip">
-										<string>Reload and refresh the movie library</string>
-									</property>
-								</widget>
-							</item>
-							<item>
-								<spacer name="horizontalSpacer_2">
-									<property name="orientation">
-										<enum>Qt::Horizontal</enum>
-									</property>
-									<property name="sizeHint" stdset="0">
-										<size>
-											<width>40</width>
-											<height>20</height>
-										</size>
-									</property>
-								</spacer>
-							</item>
-						</layout>
-					</widget>
+						<item>
+							<widget class="QPushButton" name="selectFolderButton">
+								<property name="text">
+									<string>Add Folder</string>
+								</property>
+								<property name="minimumSize">
+									<size>
+										<width>100</width>
+										<height>38</height>
+									</size>
+								</property>
+								<property name="toolTip">
+									<string>Browse and select a folder containing video files</string>
+								</property>
+							</widget>
+						</item>
+						<item>
+							<widget class="QPushButton" name="exportButton">
+								<property name="text">
+									<string>Export</string>
+								</property>
+								<property name="minimumSize">
+									<size>
+										<width>80</width>
+										<height>38</height>
+									</size>
+								</property>
+								<property name="toolTip">
+									<string>Export library to Excel</string>
+								</property>
+							</widget>
+						</item>
+						<item>
+							<widget class="QPushButton" name="refreshButton">
+								<property name="text">
+									<string>Refresh</string>
+								</property>
+								<property name="minimumSize">
+									<size>
+										<width>80</width>
+										<height>38</height>
+									</size>
+								</property>
+								<property name="toolTip">
+									<string>Reload the movie library</string>
+								</property>
+							</widget>
+						</item>
+						<item>
+							<spacer name="horizontalSpacer_2">
+								<property name="orientation">
+									<enum>Qt::Horizontal</enum>
+								</property>
+								<property name="sizeHint" stdset="0">
+									<size>
+										<width>40</width>
+										<height>20</height>
+									</size>
+								</property>
+							</spacer>
+						</item>
+					</layout>
 				</item>
 			</layout>
 		</widget>
@@ -334,15 +236,15 @@
 		</widget>
 		<widget class="QToolBar" name="toolBar">
 			<property name="windowTitle">
-				<string>🛠️  Main Toolbar</string>
+				<string>Toolbar</string>
 			</property>
 			<property name="toolButtonStyle">
 				<enum>Qt::ToolButtonTextBesideIcon</enum>
 			</property>
 			<property name="iconSize">
 				<size>
-					<width>22</width>
-					<height>22</height>
+					<width>20</width>
+					<height>20</height>
 				</size>
 			</property>
 			<attribute name="toolBarArea">

@@ -6,7 +6,7 @@
 #include <QRegularExpression>
 
 MovieDB::MovieDB(QObject *parent)
-    : QObject(parent)
+    : QObject(parent), cacheLoaded(false)
 {
     if (!QSqlDatabase::isDriverAvailable("QSQLITE"))
     {
@@ -80,7 +80,18 @@ bool MovieDB::saveMovie(const Movie &movie)
     for (const QString &field : fields)
         query.addBindValue(movieMap[field]);
 
-    return query.exec();
+    bool success = query.exec();
+
+    // Update cache if save was successful
+    if (success && cacheLoaded)
+    {
+        QRegularExpression forbidden(R"([\\/:*?"<>|,.])");
+        movieCache.insert(movie.title.toLower(), movie);
+        QString sanitized = QString(movie.title).remove(forbidden).simplified().toLower();
+        sanitizedTitleCache.insert(sanitized, movie.title);
+    }
+
+    return success;
 }
 
 Movie MovieDB::getMovie(const QString &title)
@@ -225,4 +236,86 @@ QMap<QString, QString> MovieDB::movieToMap(const Movie &movie)
         {"plot", movie.plot},
         {"genre", movie.genre},
         {"imdbid", movie.imdbID}};
+}
+
+void MovieDB::preloadCache()
+{
+    if (cacheLoaded || !db.isOpen())
+        return;
+
+    movieCache.clear();
+    sanitizedTitleCache.clear();
+
+    QRegularExpression forbidden(R"([\\/:*?"<>|,.])");
+
+    QSqlQuery query(db);
+    if (!query.exec("SELECT * FROM movies"))
+    {
+        qDebug() << "Failed to preload cache:" << query.lastError().text();
+        return;
+    }
+
+    while (query.next())
+    {
+        Movie movie;
+        movie.title = query.value("title").toString();
+        movie.year = query.value("year").toString();
+        movie.rated = query.value("rated").toString();
+        movie.imdbRating = query.value("rating").toString();
+        movie.imdbVotes = query.value("votes").toString();
+        movie.runtime = query.value("runtime").toString();
+        movie.director = query.value("director").toString();
+        movie.actors = query.value("actors").toString();
+        movie.writer = query.value("writer").toString();
+        movie.awards = query.value("awards").toString();
+        movie.language = query.value("language").toString();
+        movie.country = query.value("country").toString();
+        movie.boxOffice = query.value("boxoffice").toString();
+        movie.plot = query.value("plot").toString();
+        movie.genre = query.value("genre").toString();
+        movie.imdbID = query.value("imdbid").toString();
+
+        // Store in cache with lowercase key for case-insensitive lookup
+        movieCache.insert(movie.title.toLower(), movie);
+
+        // Also store sanitized title mapping
+        QString sanitized = QString(movie.title).remove(forbidden).simplified().toLower();
+        sanitizedTitleCache.insert(sanitized, movie.title);
+    }
+
+    cacheLoaded = true;
+    qDebug() << "Preloaded" << movieCache.size() << "movies into cache";
+}
+
+Movie MovieDB::getMovieFromCache(const QString &title)
+{
+    if (!cacheLoaded)
+        preloadCache();
+
+    return movieCache.value(title.toLower(), Movie());
+}
+
+Movie MovieDB::getMovieBySanitizedTitleFromCache(const QString &sanitizedTitle)
+{
+    if (!cacheLoaded)
+        preloadCache();
+
+    QRegularExpression forbidden(R"([\\/:*?"<>|,.])");
+    QString searchTitle = QString(sanitizedTitle).remove(forbidden).simplified().toLower();
+
+    QString originalTitle = sanitizedTitleCache.value(searchTitle);
+    if (!originalTitle.isEmpty())
+    {
+        return movieCache.value(originalTitle.toLower(), Movie());
+    }
+
+    return Movie();
+}
+
+bool MovieDB::movieExistsInCache(const QString &title)
+{
+    if (!cacheLoaded)
+        preloadCache();
+
+    return movieCache.contains(title.toLower());
 }

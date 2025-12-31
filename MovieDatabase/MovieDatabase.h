@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QSqlDatabase>
 #include <QStringList>
+#include <QHash>
 #include "Movie/Movie.h"
 
 class MovieDB : public QObject
@@ -21,9 +22,20 @@ public:
     bool movieExists(const QString &title);
     bool deleteMovie(const QString &title);
 
+    // Cache methods for faster loading
+    void preloadCache();
+    Movie getMovieFromCache(const QString &title);
+    Movie getMovieBySanitizedTitleFromCache(const QString &sanitizedTitle);
+    bool movieExistsInCache(const QString &title);
+
 private:
     bool createTable();
     QSqlDatabase db;
+
+    // Cache for faster lookups
+    QHash<QString, Movie> movieCache;
+    QHash<QString, QString> sanitizedTitleCache; // sanitized -> original title
+    bool cacheLoaded = false;
 
     const QStringList movieFields = {
         "title", "year", "rated", "rating", "votes",
