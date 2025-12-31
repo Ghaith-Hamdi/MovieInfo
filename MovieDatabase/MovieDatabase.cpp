@@ -57,6 +57,30 @@ bool MovieDB::createTable()
     if (!success)
         qDebug() << "Create table error:" << query.lastError().text();
 
+    // Also create video metadata table
+    if (success)
+        createVideoMetadataTable();
+
+    return success;
+}
+
+bool MovieDB::createVideoMetadataTable()
+{
+    QSqlQuery query(db);
+    const bool success = query.exec(
+        "CREATE TABLE IF NOT EXISTS video_metadata ("
+        "filepath TEXT PRIMARY KEY, "
+        "resolution TEXT, "
+        "aspectRatio TEXT, "
+        "quality TEXT, "
+        "duration TEXT, "
+        "audioLanguage TEXT, "
+        "fileSize TEXT, "
+        "lastModified INTEGER)");
+
+    if (!success)
+        qDebug() << "Create video_metadata table error:" << query.lastError().text();
+
     return success;
 }
 
@@ -318,4 +342,97 @@ bool MovieDB::movieExistsInCache(const QString &title)
         preloadCache();
 
     return movieCache.contains(title.toLower());
+}
+
+// ========================================================================
+// VIDEO METADATA CACHE METHODS
+// ========================================================================
+
+void MovieDB::preloadVideoMetadataCache()
+{
+    if (videoMetadataCacheLoaded || !db.isOpen())
+        return;
+
+    videoMetadataCache.clear();
+
+    QSqlQuery query(db);
+    if (!query.exec("SELECT * FROM video_metadata"))
+    {
+        qDebug() << "Failed to preload video metadata cache:" << query.lastError().text();
+        return;
+    }
+
+    while (query.next())
+    {
+        QString filePath = query.value("filepath").toString();
+        VideoMetadataCache metadata;
+        metadata.resolution = query.value("resolution").toString();
+        metadata.aspectRatio = query.value("aspectRatio").toString();
+        metadata.quality = query.value("quality").toString();
+        metadata.duration = query.value("duration").toString();
+        metadata.audioLanguage = query.value("audioLanguage").toString();
+        metadata.fileSize = query.value("fileSize").toString();
+        metadata.lastModified = query.value("lastModified").toLongLong();
+
+        videoMetadataCache.insert(filePath.toLower(), metadata);
+    }
+
+    videoMetadataCacheLoaded = true;
+    qDebug() << "Preloaded" << videoMetadataCache.size() << "video metadata entries into cache";
+}
+
+bool MovieDB::saveVideoMetadata(const QString &filePath, const VideoMetadataCache &metadata)
+{
+    if (!db.isOpen())
+    {
+        qDebug() << "Database is not open";
+        return false;
+    }
+
+    QSqlQuery query(db);
+    query.prepare(
+        "INSERT OR REPLACE INTO video_metadata "
+        "(filepath, resolution, aspectRatio, quality, duration, audioLanguage, fileSize, lastModified) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+
+    query.addBindValue(filePath);
+    query.addBindValue(metadata.resolution);
+    query.addBindValue(metadata.aspectRatio);
+    query.addBindValue(metadata.quality);
+    query.addBindValue(metadata.duration);
+    query.addBindValue(metadata.audioLanguage);
+    query.addBindValue(metadata.fileSize);
+    query.addBindValue(metadata.lastModified);
+
+    bool success = query.exec();
+
+    // Update cache if save was successful
+    if (success)
+    {
+        videoMetadataCache.insert(filePath.toLower(), metadata);
+    }
+
+    return success;
+}
+
+VideoMetadataCache MovieDB::getVideoMetadata(const QString &filePath)
+{
+    if (!videoMetadataCacheLoaded)
+        preloadVideoMetadataCache();
+
+    return videoMetadataCache.value(filePath.toLower(), VideoMetadataCache());
+}
+
+bool MovieDB::hasVideoMetadata(const QString &filePath, qint64 lastModified)
+{
+    if (!videoMetadataCacheLoaded)
+        preloadVideoMetadataCache();
+
+    QString key = filePath.toLower();
+    if (videoMetadataCache.contains(key))
+    {
+        // Check if the file has been modified since cached
+        return videoMetadataCache.value(key).lastModified == lastModified;
+    }
+    return false;
 }

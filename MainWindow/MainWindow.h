@@ -11,6 +11,7 @@
 #include <QProgressDialog>
 #include "OmdbClient/OmdbClient.h"
 #include "Movie/Movie.h"
+#include "MovieDatabase/MovieDatabase.h"
 #include "TableColumnManager/TableColumnManager.h"
 #include "MovieDataRefresher/MovieDataRefresher.h"
 #include "MoviesToMoveWindow/MoviesToMoveWindow.h"

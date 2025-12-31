@@ -376,6 +376,10 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
         }
     }
 
+    // Preload caches for faster processing
+    movieDb->preloadCache();
+    movieDb->preloadVideoMetadataCache();
+
     // Show progress dialog for processing
     if (!filesToProcess.isEmpty())
     {
@@ -387,6 +391,13 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
         progressDialog->show();
     }
 
+    // Reset fetch counters
+    totalMoviesToFetch = filesToProcess.size();
+    moviesFetched = 0;
+    moviesFromDatabase = 0;
+    moviesFromImdb = 0;
+    moviesFetchedFromImdbList.clear();
+
     int processedCount = 0;
     for (const QString &filePath : filesToProcess)
     {
@@ -397,19 +408,51 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
             break;
         }
 
-        // Use batch metadata extraction for better performance
-        VideoMetadata metadata = getVideoMetadataBatch(filePath);
+        QFileInfo fileInfo(filePath);
+        qint64 lastModified = fileInfo.lastModified().toSecsSinceEpoch();
 
-        QString folderName = QFileInfo(filePath).dir().dirName();
+        // Parse folder name for title and year
+        QString folderName = fileInfo.dir().dirName();
         QPair<QString, QString> parsed = parseFolderName(folderName);
         QString title = parsed.first;
         QString year = parsed.second;
         QString decade = getDecade(year);
 
+        // Check video metadata cache first
+        VideoMetadata metadata;
+        if (movieDb->hasVideoMetadata(filePath, lastModified))
+        {
+            // Use cached video metadata
+            VideoMetadataCache cached = movieDb->getVideoMetadata(filePath);
+            metadata.resolution = cached.resolution;
+            metadata.aspectRatio = cached.aspectRatio;
+            metadata.quality = cached.quality;
+            metadata.duration = cached.duration;
+            metadata.audioLanguage = cached.audioLanguage;
+            metadata.fileSize = cached.fileSize;
+        }
+        else
+        {
+            // Extract metadata using ffprobe
+            metadata = getVideoMetadataBatch(filePath);
+
+            // Save to cache for future use
+            VideoMetadataCache cacheEntry;
+            cacheEntry.resolution = metadata.resolution;
+            cacheEntry.aspectRatio = metadata.aspectRatio;
+            cacheEntry.quality = metadata.quality;
+            cacheEntry.duration = metadata.duration;
+            cacheEntry.audioLanguage = metadata.audioLanguage;
+            cacheEntry.fileSize = metadata.fileSize;
+            cacheEntry.lastModified = lastModified;
+            movieDb->saveVideoMetadata(filePath, cacheEntry);
+        }
+
         decades.insert(decade);
         aspectRatios.insert(metadata.aspectRatio);
         qualities.insert(metadata.quality);
 
+        // Create table row
         int row = ui->tableWidget->rowCount();
         ui->tableWidget->insertRow(row);
         QTableWidgetItem *titleItem = new QTableWidgetItem(title);
@@ -428,13 +471,26 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
         QWidget *buttonsWidget = createActionButtonsWidget(filePath, title, year);
         ui->tableWidget->setCellWidget(row, 9, buttonsWidget);
 
+        // Fetch movie data immediately (uses cache if available)
+        int yearInt = year.toInt();
+        omdbClient->fetchMovie(title, yearInt);
+
         // Update progress
         processedCount++;
         if (progressDialog)
         {
             progressDialog->setValue(processedCount);
-            progressDialog->setLabelText(QString("Processing video %1 of %2...").arg(processedCount).arg(filesToProcess.size()));
+            progressDialog->setLabelText(QString("Processing %1 of %2: %3")
+                                             .arg(processedCount)
+                                             .arg(filesToProcess.size())
+                                             .arg(title));
         }
+
+        // Process events to keep UI responsive
+        QCoreApplication::processEvents();
+
+        // Small delay to avoid overwhelming the API
+        QThread::msleep(50);
     }
 
     // Clean up progress dialog
@@ -454,15 +510,10 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
 
     // Update status bar with processing results
     int totalFiles = filesToProcess.size();
-    ui->statusbar->showMessage(QString("Processed %1 video files. Fetching movie data...")
-                                   .arg(totalFiles),
-                               2000);
-
-    // Automatically fetch movie data after processing videos
-    if (totalFiles > 0)
-    {
-        QTimer::singleShot(500, this, &MainWindow::onFetchClicked);
-    }
+    ui->statusbar->showMessage(QString("Processed %1 video files | From Database: %2 | From IMDb: %3")
+                                   .arg(totalFiles)
+                                   .arg(moviesFromDatabase)
+                                   .arg(moviesFromImdb));
 }
 
 // ========================================================================
@@ -799,7 +850,12 @@ void MainWindow::onRenameFolderClicked()
     baseDir.cdUp();
     QString newPath = QDir::cleanPath(baseDir.absoluteFilePath(newName));
 
-    if (QDir(newPath).exists())
+    // Allow case-only renames (e.g., "titanic" -> "Titanic")
+    QString currentPathNormalized = QDir::cleanPath(currentPath).toLower();
+    QString newPathNormalized = QDir::cleanPath(newPath).toLower();
+    bool isCaseOnlyRename = (currentPathNormalized == newPathNormalized);
+
+    if (QDir(newPath).exists() && !isCaseOnlyRename)
     {
         QMessageBox::warning(this, "Error", "Target folder already exists.");
         return;
