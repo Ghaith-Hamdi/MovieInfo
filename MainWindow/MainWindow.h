@@ -54,12 +54,13 @@ private slots:
     void showContextMenu(const QPoint &pos);
     void onOpenFolderClicked();
     void onRenameFolderClicked();
-    void onMoveFolderToArchiveClicked();
 
     // ===== Action Buttons =====
     void onOpenFileClicked();
     void onImdbButtonClicked();
     void onPaheButtonClicked();
+    void onOrganizeByAspectRatioClicked();
+    void onOrganizeAllByAspectRatioClicked();
 
     // ===== Drive & Year Selection =====
     void onFetchByDriveYearClicked();
@@ -151,6 +152,7 @@ private:
     void loadExternalStylesheet();
     QString buildFolderPath(const QString &drive, int year);
     bool meetsHighQualityCriteria(int votes, double rating);
+    void updateRowFilePath(int row, const QString &newFilePath);
 };
 
 #endif // MAINWINDOW_H

@@ -213,6 +213,22 @@
 							</widget>
 						</item>
 						<item>
+							<widget class="QPushButton" name="organizeAllButton">
+								<property name="text">
+									<string>Organize All</string>
+								</property>
+								<property name="minimumSize">
+									<size>
+										<width>100</width>
+										<height>38</height>
+									</size>
+								</property>
+								<property name="toolTip">
+									<string>Organize all movies by aspect ratio (16:9 or UW)</string>
+								</property>
+							</widget>
+						</item>
+						<item>
 							<spacer name="horizontalSpacer_2">
 								<property name="orientation">
 									<enum>Qt::Horizontal</enum>

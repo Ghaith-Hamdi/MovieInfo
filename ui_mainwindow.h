@@ -45,6 +45,7 @@ public:
     QPushButton *selectFolderButton;
     QPushButton *exportButton;
     QPushButton *refreshButton;
+    QPushButton *organizeAllButton;
     QSpacerItem *horizontalSpacer_2;
     QStatusBar *statusbar;
     QToolBar *toolBar;
@@ -142,6 +143,12 @@ public:
 
         actionsLayout->addWidget(refreshButton);
 
+        organizeAllButton = new QPushButton(centralwidget);
+        organizeAllButton->setObjectName("organizeAllButton");
+        organizeAllButton->setMinimumSize(QSize(100, 38));
+
+        actionsLayout->addWidget(organizeAllButton);
+
         horizontalSpacer_2 = new QSpacerItem(40, 20, QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Minimum);
 
         actionsLayout->addItem(horizontalSpacer_2);
@@ -197,6 +204,10 @@ public:
         refreshButton->setText(QCoreApplication::translate("MainWindow", "Refresh", nullptr));
 #if QT_CONFIG(tooltip)
         refreshButton->setToolTip(QCoreApplication::translate("MainWindow", "Reload the movie library", nullptr));
+#endif // QT_CONFIG(tooltip)
+        organizeAllButton->setText(QCoreApplication::translate("MainWindow", "Organize All", nullptr));
+#if QT_CONFIG(tooltip)
+        organizeAllButton->setToolTip(QCoreApplication::translate("MainWindow", "Organize all movies by aspect ratio (16:9 or UW)", nullptr));
 #endif // QT_CONFIG(tooltip)
         toolBar->setWindowTitle(QCoreApplication::translate("MainWindow", "Toolbar", nullptr));
     } // retranslateUi

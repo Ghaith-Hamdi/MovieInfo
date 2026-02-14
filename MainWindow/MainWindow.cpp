@@ -196,6 +196,36 @@ MainWindow::MainWindow(QWidget *parent)
     ui->selectFolderButton->setToolTip("Select a folder containing video files to add to your library");
     ui->exportButton->setToolTip("Export the current movie library to an Excel file");
 
+    // Ensure Organize All button exists (UI might not expose it); create/connect at runtime
+    QPushButton *organizeAllBtn = ui->centralwidget->findChild<QPushButton *>("organizeAllButton");
+    if (!organizeAllBtn)
+    {
+        organizeAllBtn = new QPushButton("Organize All", this);
+        organizeAllBtn->setObjectName("organizeAllButton");
+        organizeAllBtn->setMinimumWidth(100);
+        // Try to insert into the actions layout next to the other action buttons
+        if (ui->actionsLayout)
+        {
+            // Insert before the spacer if present
+            int spacerIndex = -1;
+            for (int i = 0; i < ui->actionsLayout->count(); ++i)
+            {
+                QLayoutItem *item = ui->actionsLayout->itemAt(i);
+                if (item && item->spacerItem())
+                {
+                    spacerIndex = i;
+                    break;
+                }
+            }
+            if (spacerIndex >= 0)
+                ui->actionsLayout->insertWidget(spacerIndex, organizeAllBtn);
+            else
+                ui->actionsLayout->addWidget(organizeAllBtn);
+        }
+    }
+    organizeAllBtn->setToolTip("Organize all movies by aspect ratio into 16-9 or UW folders");
+    connect(organizeAllBtn, &QPushButton::clicked, this, &MainWindow::onOrganizeAllByAspectRatioClicked);
+
     // Add status bar message
     ui->statusbar->showMessage("Ready - drag files or use Add Folder to start");
 
@@ -340,6 +370,7 @@ QWidget *MainWindow::createActionButtonsWidget(const QString &filePath, const QS
     paheButton->setProperty("title", title);
     paheButton->setProperty("year", year);
     connect(paheButton, &QPushButton::clicked, this, &MainWindow::onPaheButtonClicked);
+
 
     QWidget *buttonsWidget = new QWidget();
     QHBoxLayout *layout = new QHBoxLayout(buttonsWidget);
@@ -752,12 +783,10 @@ void MainWindow::showContextMenu(const QPoint &pos)
     menu.addSeparator();
     QAction *openFolderAction = menu.addAction("Open Containing Folder");
     QAction *renameFolderAction = menu.addAction("Rename Folder");
-    QAction *moveFolderAction = menu.addAction("Move to Archive Folder");
 
     connect(refreshMovieAction, &QAction::triggered, this, &MainWindow::onRefreshMovieClicked);
     connect(openFolderAction, &QAction::triggered, this, &MainWindow::onOpenFolderClicked);
     connect(renameFolderAction, &QAction::triggered, this, &MainWindow::onRenameFolderClicked);
-    connect(moveFolderAction, &QAction::triggered, this, &MainWindow::onMoveFolderToArchiveClicked);
 
     menu.exec(ui->tableWidget->viewport()->mapToGlobal(pos));
 }
@@ -880,9 +909,8 @@ void MainWindow::onRenameFolderClicked()
     if (renamed)
     {
         QString newFilePath = newPathNative + QDir::separator() + fileInfo.fileName();
-        // Update stored file path
-        if (ui->tableWidget->item(contextMenuRow, 0))
-            ui->tableWidget->item(contextMenuRow, 0)->setData(FilePathRole, newFilePath);
+        // Update stored file path and action button
+        updateRowFilePath(contextMenuRow, newFilePath);
 
         // Update visible UI: title, year and decade
         if (!newTitle.isEmpty())
@@ -935,64 +963,297 @@ void MainWindow::onRenameFolderClicked()
     }
 }
 
-void MainWindow::onMoveFolderToArchiveClicked()
+void MainWindow::onOrganizeByAspectRatioClicked()
 {
-    const QString kArchiveFolderPath = "D:/New folder";
-
-    QList<QTableWidgetSelectionRange> ranges = ui->tableWidget->selectedRanges();
-    if (ranges.isEmpty())
-    {
-        QMessageBox::warning(this, "No Selection", "Please select at least one movie.");
+    QPushButton *button = qobject_cast<QPushButton *>(sender());
+    if (!button)
         return;
-    }
 
-    QDir archiveDir(kArchiveFolderPath);
-    if (!archiveDir.exists() && !archiveDir.mkpath("."))
-    {
-        QMessageBox::warning(this, "Error", "Failed to create archive folder.");
+    QString filePath = button->property("filePath").toString();
+    if (filePath.isEmpty())
         return;
-    }
 
-    int movedCount = 0;
-
-    for (const QTableWidgetSelectionRange &range : ranges)
+    // Find the row for this button
+    int targetRow = -1;
+    for (int row = 0; row < ui->tableWidget->rowCount(); ++row)
     {
-        for (int row = range.topRow(); row <= range.bottomRow(); ++row)
+        QTableWidgetItem *titleItem = ui->tableWidget->item(row, 0);
+        if (titleItem && titleItem->data(FilePathRole).toString() == filePath)
         {
-            std::optional<QFileInfo> fileInfoOpt = getFileInfoForRow(row);
-            if (!fileInfoOpt)
-                continue;
-
-            const QFileInfo &fileInfo = *fileInfoOpt;
-            QDir currentDir = fileInfo.dir();
-            QString currentPath = currentDir.absolutePath();
-            QString folderName = currentDir.dirName();
-            QString newPath = QDir::cleanPath(archiveDir.filePath(folderName));
-
-            if (QDir(newPath).exists())
-                continue;
-
-            QString currentPathNative = QDir::toNativeSeparators(currentPath);
-            QString newPathNative = QDir::toNativeSeparators(newPath);
-
-            bool moved = QDir().rename(currentPathNative, newPathNative);
-            if (moved)
-            {
-                QString newFilePath = newPathNative + QDir::separator() + fileInfo.fileName();
-                ui->tableWidget->item(row, 0)->setData(FilePathRole, newFilePath);
-                ++movedCount;
-            }
+            targetRow = row;
+            break;
         }
     }
 
-    if (movedCount > 0)
+    if (targetRow < 0)
+        return;
+
+    // Get aspect ratio from column 4
+    QTableWidgetItem *aspectRatioItem = ui->tableWidget->item(targetRow, 4);
+    if (!aspectRatioItem)
+        return;
+
+    QString aspectRatioStr = aspectRatioItem->text();
+    bool ok = false;
+    double aspectRatio = aspectRatioStr.toDouble(&ok);
+
+    if (!ok)
     {
-        QMessageBox::information(this, "Success", QString("Moved %1 folder(s) to archive.").arg(movedCount));
+        QMessageBox::warning(this, "Error", "Invalid aspect ratio value.");
+        return;
+    }
+
+    // Determine target folder based on aspect ratio
+    QString targetFolderName = (aspectRatio < 2.3) ? "16-9" : "UW";
+
+    // Get current folder info
+    QFileInfo fileInfo(filePath);
+    QDir currentDir = fileInfo.dir();
+    QString currentPath = currentDir.absolutePath();
+    QString movieFolderName = currentDir.dirName();
+    
+    // Get parent directory
+    QDir parentDir = currentDir;
+    if (!parentDir.cdUp())
+    {
+        QMessageBox::warning(this, "Error", "Cannot access parent directory.");
+        return;
+    }
+
+    // Create target folder path under the same parent
+    QString targetBasePath = parentDir.filePath(targetFolderName);
+    QDir targetBaseDir(targetBasePath);
+    
+    // Create the target base directory if it doesn't exist
+    if (!targetBaseDir.exists() && !targetBaseDir.mkpath("."))
+    {
+        QMessageBox::warning(this, "Error", QString("Failed to create folder: %1").arg(targetBasePath));
+        return;
+    }
+
+    // Final destination path
+    QString destinationPath = targetBaseDir.filePath(movieFolderName);
+
+    // Check if destination already exists
+    if (QDir(destinationPath).exists())
+    {
+        QMessageBox::warning(this, "Error", QString("Folder already exists at destination:\n%1").arg(destinationPath));
+        return;
+    }
+
+    // Confirm with user
+    QString confirmMsg = QString("Move movie folder to %1?\n\nFrom: %2\nTo: %3")
+                            .arg(targetFolderName)
+                            .arg(currentPath)
+                            .arg(destinationPath);
+    
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this,
+        "Confirm Organization",
+        confirmMsg,
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No);
+
+    if (reply != QMessageBox::Yes)
+        return;
+
+    // Attempt to move the folder
+    QString currentPathNative = QDir::toNativeSeparators(currentPath);
+    QString destinationPathNative = QDir::toNativeSeparators(destinationPath);
+
+    bool moved = QDir().rename(currentPathNative, destinationPathNative);
+    
+    if (moved)
+    {
+        // Update the file path in the table and buttons
+        QString newFilePath = destinationPathNative + QDir::separator() + fileInfo.fileName();
+        updateRowFilePath(targetRow, newFilePath);
+        
+        ui->statusbar->showMessage(QString("Moved to %1 folder successfully").arg(targetFolderName), 3000);
+        QMessageBox::information(this, "Success", QString("Movie organized into %1 folder.").arg(targetFolderName));
     }
     else
     {
-        QMessageBox::warning(this, "No Folders Moved", "No folders were moved. They may already exist in the archive.");
+        // Try using system command as fallback
+        QProcess process;
+        process.start("cmd.exe", QStringList() << "/c" << "move" << currentPathNative << destinationPathNative);
+        process.waitForFinished(30000);
+
+        if (process.exitCode() == 0)
+        {
+            QString newFilePath = destinationPathNative + QDir::separator() + fileInfo.fileName();
+            updateRowFilePath(targetRow, newFilePath);
+            
+            ui->statusbar->showMessage(QString("Moved to %1 folder successfully").arg(targetFolderName), 3000);
+            QMessageBox::information(this, "Success", QString("Movie organized into %1 folder.").arg(targetFolderName));
+        }
+        else
+        {
+            QMessageBox::warning(this, "Error", "Failed to move the folder. Check permissions and try again.");
+        }
     }
+}
+
+void MainWindow::onOrganizeAllByAspectRatioClicked()
+{
+    int totalMovies = ui->tableWidget->rowCount();
+    
+    if (totalMovies == 0)
+    {
+        QMessageBox::information(this, "No Movies", "No movies in the list to organize.");
+        return;
+    }
+
+    // Confirm with user
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this,
+        "Confirm Organize All",
+        QString("Organize all %1 movies by aspect ratio?\n\nMovies with aspect ratio < 2.3 will be moved to '16-9' folder.\nMovies with aspect ratio >= 2.3 will be moved to 'UW' folder.\n\nThis cannot be undone!").arg(totalMovies),
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No);
+
+    if (reply != QMessageBox::Yes)
+        return;
+
+    // Create progress dialog
+    QProgressDialog *progressDialog = new QProgressDialog("Organizing movies...", "Cancel", 0, totalMovies, this);
+    progressDialog->setWindowModality(Qt::WindowModal);
+    progressDialog->setMinimumWidth(400);
+    progressDialog->setMinimumDuration(0);
+    progressDialog->setValue(0);
+    progressDialog->show();
+
+    int movedCount = 0;
+    int skippedCount = 0;
+    int failedCount = 0;
+    QStringList failedMovies;
+
+    // Process each row
+    for (int row = 0; row < totalMovies; ++row)
+    {
+        if (progressDialog->wasCanceled())
+        {
+            break;
+        }
+
+        QTableWidgetItem *titleItem = ui->tableWidget->item(row, 0);
+        QTableWidgetItem *aspectRatioItem = ui->tableWidget->item(row, 4);
+
+        if (!titleItem || !aspectRatioItem)
+        {
+            skippedCount++;
+            continue;
+        }
+
+        QString filePath = titleItem->data(FilePathRole).toString();
+        QString title = titleItem->text();
+        QString aspectRatioStr = aspectRatioItem->text();
+        
+        bool ok = false;
+        double aspectRatio = aspectRatioStr.toDouble(&ok);
+
+        if (!ok || filePath.isEmpty())
+        {
+            skippedCount++;
+            continue;
+        }
+
+        progressDialog->setValue(row);
+        progressDialog->setLabelText(QString("Organizing %1 of %2: %3").arg(row + 1).arg(totalMovies).arg(title));
+
+        // Determine target folder based on aspect ratio
+        QString targetFolderName = (aspectRatio < 2.3) ? "16-9" : "UW";
+
+        // Get current folder info
+        QFileInfo fileInfo(filePath);
+        if (!fileInfo.exists())
+        {
+            skippedCount++;
+            continue;
+        }
+
+        QDir currentDir = fileInfo.dir();
+        QString currentPath = currentDir.absolutePath();
+        QString movieFolderName = currentDir.dirName();
+        
+        // Get parent directory
+        QDir parentDir = currentDir;
+        if (!parentDir.cdUp())
+        {
+            failedMovies.append(QString("%1 (cannot access parent)").arg(title));
+            failedCount++;
+            continue;
+        }
+
+        // Create target folder path under the same parent
+        QString targetBasePath = parentDir.filePath(targetFolderName);
+        QDir targetBaseDir(targetBasePath);
+        
+        // Create the target base directory if it doesn't exist
+        if (!targetBaseDir.exists() && !targetBaseDir.mkpath("."))
+        {
+            failedMovies.append(QString("%1 (cannot create folder)").arg(title));
+            failedCount++;
+            continue;
+        }
+
+        // Final destination path
+        QString destinationPath = targetBaseDir.filePath(movieFolderName);
+
+        // Check if destination already exists
+        if (QDir(destinationPath).exists())
+        {
+            skippedCount++;
+            continue;
+        }
+
+        // Attempt to move the folder
+        QString currentPathNative = QDir::toNativeSeparators(currentPath);
+        QString destinationPathNative = QDir::toNativeSeparators(destinationPath);
+
+        bool moved = QDir().rename(currentPathNative, destinationPathNative);
+        
+        if (!moved)
+        {
+            // Try using system command as fallback
+            QProcess process;
+            process.start("cmd.exe", QStringList() << "/c" << "move" << currentPathNative << destinationPathNative);
+            process.waitForFinished(30000);
+            moved = (process.exitCode() == 0);
+        }
+
+            if (moved)
+            {
+                // Update the file path in the table and action button
+                QString newFilePath = destinationPathNative + QDir::separator() + fileInfo.fileName();
+                updateRowFilePath(row, newFilePath);
+                movedCount++;
+            }
+        else
+        {
+            failedMovies.append(QString("%1 (move failed)").arg(title));
+            failedCount++;
+        }
+
+        QCoreApplication::processEvents();
+    }
+
+    progressDialog->close();
+    delete progressDialog;
+
+    // Show results
+    QString resultMsg = QString("Organization Complete:\n\nMoved: %1\nSkipped: %2\nFailed: %3")
+                           .arg(movedCount)
+                           .arg(skippedCount)
+                           .arg(failedCount);
+    
+    if (failedCount > 0)
+    {
+        resultMsg += "\n\nFailed movies:\n" + failedMovies.join("\n");
+    }
+
+    QMessageBox::information(this, "Organize All Complete", resultMsg);
+    ui->statusbar->showMessage(QString("Organized %1 movies, skipped %2, failed %3").arg(movedCount).arg(skippedCount).arg(failedCount), 5000);
 }
 
 // ========================================================================
@@ -1477,6 +1738,31 @@ QString MainWindow::buildFolderPath(const QString &drive, int year)
 bool MainWindow::meetsHighQualityCriteria(int votes, double rating)
 {
     return (votes >= 100000 && rating >= 7.0);
+}
+
+void MainWindow::updateRowFilePath(int row, const QString &newFilePath)
+{
+    if (row < 0 || row >= ui->tableWidget->rowCount())
+        return;
+
+    // Update the stored file path in the first column's data
+    QTableWidgetItem *item = ui->tableWidget->item(row, 0);
+    if (item)
+        item->setData(FilePathRole, newFilePath);
+
+    // Update any action button that stores the filePath property
+    QWidget *actionsWidget = ui->tableWidget->cellWidget(row, 9);
+    if (!actionsWidget)
+        return;
+
+    QList<QPushButton *> buttons = actionsWidget->findChildren<QPushButton *>();
+    for (QPushButton *btn : buttons)
+    {
+        if (btn->property("filePath").isValid())
+        {
+            btn->setProperty("filePath", newFilePath);
+        }
+    }
 }
 
 void MainWindow::onFetchByDriveYearClicked()
