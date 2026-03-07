@@ -46,13 +46,12 @@ bool MovieDB::createTable()
     QStringList columns;
     for (const QString &field : movieFields)
     {
-        QString colType = (field == "title") ? "TEXT PRIMARY KEY" : "TEXT";
-        columns << QString("%1 %2").arg(field, colType);
+        columns << QString("%1 TEXT").arg(field);
     }
 
     QSqlQuery query(db);
     const bool success = query.exec(
-        QString("CREATE TABLE IF NOT EXISTS movies (%1)").arg(columns.join(", ")));
+        QString("CREATE TABLE IF NOT EXISTS movies (%1, PRIMARY KEY (title, year))").arg(columns.join(", ")));
 
     if (!success)
         qDebug() << "Create table error:" << query.lastError().text();
@@ -110,20 +109,22 @@ bool MovieDB::saveMovie(const Movie &movie)
     if (success && cacheLoaded)
     {
         QRegularExpression forbidden(R"([\\/:*?"<>|,.])");
-        movieCache.insert(movie.title.toLower(), movie);
-        QString sanitized = QString(movie.title).remove(forbidden).simplified().toLower();
-        sanitizedTitleCache.insert(sanitized, movie.title);
+        QString cacheKey = movie.title.toLower() + "|" + movie.year;
+        movieCache.insert(cacheKey, movie);
+        QString sanitized = QString(movie.title).remove(forbidden).simplified().toLower() + "|" + movie.year;
+        sanitizedTitleCache.insert(sanitized, movie.title + "|" + movie.year);
     }
 
     return success;
 }
 
-Movie MovieDB::getMovie(const QString &title)
+Movie MovieDB::getMovie(const QString &title, const QString &year)
 {
     Movie movie;
     QSqlQuery query(db);
-    query.prepare("SELECT * FROM movies WHERE title = ?");
+    query.prepare("SELECT * FROM movies WHERE title = ? AND year = ?");
     query.addBindValue(title);
+    query.addBindValue(year);
 
     if (query.exec() && query.next())
     {
@@ -148,7 +149,7 @@ Movie MovieDB::getMovie(const QString &title)
     return movie;
 }
 
-Movie MovieDB::getMovieBySanitizedTitle(const QString &sanitizedTitle)
+Movie MovieDB::getMovieBySanitizedTitle(const QString &sanitizedTitle, const QString &year)
 {
     Movie movie;
 
@@ -167,13 +168,14 @@ Movie MovieDB::getMovieBySanitizedTitle(const QString &sanitizedTitle)
     while (query.next())
     {
         QString dbTitle = query.value("title").toString();
+        QString dbYear = query.value("year").toString();
         QString sanitizedDbTitle = QString(dbTitle).remove(forbidden).simplified();
 
-        if (sanitizedDbTitle.compare(searchTitle, Qt::CaseInsensitive) == 0)
+        if (sanitizedDbTitle.compare(searchTitle, Qt::CaseInsensitive) == 0 && dbYear == year)
         {
             // Found a match!
             movie.title = dbTitle;
-            movie.year = query.value("year").toString();
+            movie.year = dbYear;
             movie.rated = query.value("rated").toString();
             movie.imdbRating = query.value("rating").toString();
             movie.imdbVotes = query.value("votes").toString();
@@ -197,19 +199,20 @@ Movie MovieDB::getMovieBySanitizedTitle(const QString &sanitizedTitle)
     return movie;
 }
 
-bool MovieDB::movieExists(const QString &title)
+bool MovieDB::movieExists(const QString &title, const QString &year)
 {
     if (!db.isOpen())
         return false;
 
     QSqlQuery query(db);
-    query.prepare("SELECT COUNT(*) FROM movies WHERE title = ?");
+    query.prepare("SELECT COUNT(*) FROM movies WHERE title = ? AND year = ?");
     query.addBindValue(title);
+    query.addBindValue(year);
 
     return query.exec() && query.next() && query.value(0).toInt() > 0;
 }
 
-bool MovieDB::deleteMovie(const QString &title)
+bool MovieDB::deleteMovie(const QString &title, const QString &year)
 {
     if (!db.isOpen())
     {
@@ -218,8 +221,9 @@ bool MovieDB::deleteMovie(const QString &title)
     }
 
     QSqlQuery query(db);
-    query.prepare("DELETE FROM movies WHERE title = ?");
+    query.prepare("DELETE FROM movies WHERE title = ? AND year = ?");
     query.addBindValue(title);
+    query.addBindValue(year);
 
     if (!query.exec())
     {
@@ -299,49 +303,52 @@ void MovieDB::preloadCache()
         movie.genre = query.value("genre").toString();
         movie.imdbID = query.value("imdbid").toString();
 
-        // Store in cache with lowercase key for case-insensitive lookup
-        movieCache.insert(movie.title.toLower(), movie);
+        // Store in cache with lowercase key for case-insensitive lookup (title + year)
+        QString cacheKey = movie.title.toLower() + "|" + movie.year;
+        movieCache.insert(cacheKey, movie);
 
         // Also store sanitized title mapping
-        QString sanitized = QString(movie.title).remove(forbidden).simplified().toLower();
-        sanitizedTitleCache.insert(sanitized, movie.title);
+        QString sanitized = QString(movie.title).remove(forbidden).simplified().toLower() + "|" + movie.year;
+        sanitizedTitleCache.insert(sanitized, movie.title + "|" + movie.year);
     }
 
     cacheLoaded = true;
     qDebug() << "Preloaded" << movieCache.size() << "movies into cache";
 }
 
-Movie MovieDB::getMovieFromCache(const QString &title)
+Movie MovieDB::getMovieFromCache(const QString &title, const QString &year)
 {
     if (!cacheLoaded)
         preloadCache();
 
-    return movieCache.value(title.toLower(), Movie());
+    QString cacheKey = title.toLower() + "|" + year;
+    return movieCache.value(cacheKey, Movie());
 }
 
-Movie MovieDB::getMovieBySanitizedTitleFromCache(const QString &sanitizedTitle)
+Movie MovieDB::getMovieBySanitizedTitleFromCache(const QString &sanitizedTitle, const QString &year)
 {
     if (!cacheLoaded)
         preloadCache();
 
-    QRegularExpression forbidden(R"([\\/:*?"<>|,.])");
-    QString searchTitle = QString(sanitizedTitle).remove(forbidden).simplified().toLower();
+    QRegularExpression forbidden(R"([\\/:*?\"<>|,.])");
+    QString searchTitle = QString(sanitizedTitle).remove(forbidden).simplified().toLower() + "|" + year;
 
-    QString originalTitle = sanitizedTitleCache.value(searchTitle);
-    if (!originalTitle.isEmpty())
+    QString originalTitleWithYear = sanitizedTitleCache.value(searchTitle);
+    if (!originalTitleWithYear.isEmpty())
     {
-        return movieCache.value(originalTitle.toLower(), Movie());
+        return movieCache.value(originalTitleWithYear.toLower(), Movie());
     }
 
     return Movie();
 }
 
-bool MovieDB::movieExistsInCache(const QString &title)
+bool MovieDB::movieExistsInCache(const QString &title, const QString &year)
 {
     if (!cacheLoaded)
         preloadCache();
 
-    return movieCache.contains(title.toLower());
+    QString cacheKey = title.toLower() + "|" + year;
+    return movieCache.contains(cacheKey);
 }
 
 // ========================================================================

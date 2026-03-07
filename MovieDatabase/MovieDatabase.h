@@ -29,16 +29,16 @@ public:
 
     bool init();
     bool saveMovie(const Movie &movie);
-    Movie getMovie(const QString &title);
-    Movie getMovieBySanitizedTitle(const QString &sanitizedTitle);
-    bool movieExists(const QString &title);
-    bool deleteMovie(const QString &title);
+    Movie getMovie(const QString &title, const QString &year);
+    Movie getMovieBySanitizedTitle(const QString &sanitizedTitle, const QString &year);
+    bool movieExists(const QString &title, const QString &year);
+    bool deleteMovie(const QString &title, const QString &year);
 
     // Cache methods for faster loading
     void preloadCache();
-    Movie getMovieFromCache(const QString &title);
-    Movie getMovieBySanitizedTitleFromCache(const QString &sanitizedTitle);
-    bool movieExistsInCache(const QString &title);
+    Movie getMovieFromCache(const QString &title, const QString &year);
+    Movie getMovieBySanitizedTitleFromCache(const QString &sanitizedTitle, const QString &year);
+    bool movieExistsInCache(const QString &title, const QString &year);
 
     // Video metadata cache methods
     bool saveVideoMetadata(const QString &filePath, const VideoMetadataCache &metadata);

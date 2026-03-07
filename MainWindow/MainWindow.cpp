@@ -94,7 +94,8 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
     // Initialize OMDb client
-    omdbClient = new OmdbClient("10f95a16", movieDb, this);
+    // omdbClient = new OmdbClient("10f95a16", movieDb, this);
+    omdbClient = new OmdbClient("5af6b86e", movieDb, this);
 
     // Initialize helper classes
     columnManager = new TableColumnManager(ui->tableWidget, ui->toolBar, this);
@@ -370,7 +371,6 @@ QWidget *MainWindow::createActionButtonsWidget(const QString &filePath, const QS
     paheButton->setProperty("title", title);
     paheButton->setProperty("year", year);
     connect(paheButton, &QPushButton::clicked, this, &MainWindow::onPaheButtonClicked);
-
 
     QWidget *buttonsWidget = new QWidget();
     QHBoxLayout *layout = new QHBoxLayout(buttonsWidget);
@@ -1011,7 +1011,7 @@ void MainWindow::onOrganizeByAspectRatioClicked()
     QDir currentDir = fileInfo.dir();
     QString currentPath = currentDir.absolutePath();
     QString movieFolderName = currentDir.dirName();
-    
+
     // Get parent directory
     QDir parentDir = currentDir;
     if (!parentDir.cdUp())
@@ -1023,7 +1023,7 @@ void MainWindow::onOrganizeByAspectRatioClicked()
     // Create target folder path under the same parent
     QString targetBasePath = parentDir.filePath(targetFolderName);
     QDir targetBaseDir(targetBasePath);
-    
+
     // Create the target base directory if it doesn't exist
     if (!targetBaseDir.exists() && !targetBaseDir.mkpath("."))
     {
@@ -1043,10 +1043,10 @@ void MainWindow::onOrganizeByAspectRatioClicked()
 
     // Confirm with user
     QString confirmMsg = QString("Move movie folder to %1?\n\nFrom: %2\nTo: %3")
-                            .arg(targetFolderName)
-                            .arg(currentPath)
-                            .arg(destinationPath);
-    
+                             .arg(targetFolderName)
+                             .arg(currentPath)
+                             .arg(destinationPath);
+
     QMessageBox::StandardButton reply = QMessageBox::question(
         this,
         "Confirm Organization",
@@ -1062,13 +1062,13 @@ void MainWindow::onOrganizeByAspectRatioClicked()
     QString destinationPathNative = QDir::toNativeSeparators(destinationPath);
 
     bool moved = QDir().rename(currentPathNative, destinationPathNative);
-    
+
     if (moved)
     {
         // Update the file path in the table and buttons
         QString newFilePath = destinationPathNative + QDir::separator() + fileInfo.fileName();
         updateRowFilePath(targetRow, newFilePath);
-        
+
         ui->statusbar->showMessage(QString("Moved to %1 folder successfully").arg(targetFolderName), 3000);
         QMessageBox::information(this, "Success", QString("Movie organized into %1 folder.").arg(targetFolderName));
     }
@@ -1083,7 +1083,7 @@ void MainWindow::onOrganizeByAspectRatioClicked()
         {
             QString newFilePath = destinationPathNative + QDir::separator() + fileInfo.fileName();
             updateRowFilePath(targetRow, newFilePath);
-            
+
             ui->statusbar->showMessage(QString("Moved to %1 folder successfully").arg(targetFolderName), 3000);
             QMessageBox::information(this, "Success", QString("Movie organized into %1 folder.").arg(targetFolderName));
         }
@@ -1097,7 +1097,7 @@ void MainWindow::onOrganizeByAspectRatioClicked()
 void MainWindow::onOrganizeAllByAspectRatioClicked()
 {
     int totalMovies = ui->tableWidget->rowCount();
-    
+
     if (totalMovies == 0)
     {
         QMessageBox::information(this, "No Movies", "No movies in the list to organize.");
@@ -1148,7 +1148,7 @@ void MainWindow::onOrganizeAllByAspectRatioClicked()
         QString filePath = titleItem->data(FilePathRole).toString();
         QString title = titleItem->text();
         QString aspectRatioStr = aspectRatioItem->text();
-        
+
         bool ok = false;
         double aspectRatio = aspectRatioStr.toDouble(&ok);
 
@@ -1175,7 +1175,7 @@ void MainWindow::onOrganizeAllByAspectRatioClicked()
         QDir currentDir = fileInfo.dir();
         QString currentPath = currentDir.absolutePath();
         QString movieFolderName = currentDir.dirName();
-        
+
         // Get parent directory
         QDir parentDir = currentDir;
         if (!parentDir.cdUp())
@@ -1188,7 +1188,7 @@ void MainWindow::onOrganizeAllByAspectRatioClicked()
         // Create target folder path under the same parent
         QString targetBasePath = parentDir.filePath(targetFolderName);
         QDir targetBaseDir(targetBasePath);
-        
+
         // Create the target base directory if it doesn't exist
         if (!targetBaseDir.exists() && !targetBaseDir.mkpath("."))
         {
@@ -1212,7 +1212,7 @@ void MainWindow::onOrganizeAllByAspectRatioClicked()
         QString destinationPathNative = QDir::toNativeSeparators(destinationPath);
 
         bool moved = QDir().rename(currentPathNative, destinationPathNative);
-        
+
         if (!moved)
         {
             // Try using system command as fallback
@@ -1222,13 +1222,13 @@ void MainWindow::onOrganizeAllByAspectRatioClicked()
             moved = (process.exitCode() == 0);
         }
 
-            if (moved)
-            {
-                // Update the file path in the table and action button
-                QString newFilePath = destinationPathNative + QDir::separator() + fileInfo.fileName();
-                updateRowFilePath(row, newFilePath);
-                movedCount++;
-            }
+        if (moved)
+        {
+            // Update the file path in the table and action button
+            QString newFilePath = destinationPathNative + QDir::separator() + fileInfo.fileName();
+            updateRowFilePath(row, newFilePath);
+            movedCount++;
+        }
         else
         {
             failedMovies.append(QString("%1 (move failed)").arg(title));
@@ -1243,10 +1243,10 @@ void MainWindow::onOrganizeAllByAspectRatioClicked()
 
     // Show results
     QString resultMsg = QString("Organization Complete:\n\nMoved: %1\nSkipped: %2\nFailed: %3")
-                           .arg(movedCount)
-                           .arg(skippedCount)
-                           .arg(failedCount);
-    
+                            .arg(movedCount)
+                            .arg(skippedCount)
+                            .arg(failedCount);
+
     if (failedCount > 0)
     {
         resultMsg += "\n\nFailed movies:\n" + failedMovies.join("\n");
@@ -1569,7 +1569,11 @@ void MainWindow::onMovieFetched(const Movie &movie)
 
         const QString rowTitle = sanitizeForWindowsFolder(item->text());
 
-        if (rowTitle == sanitizedTitle)
+        // Also check the year to match the correct movie
+        QTableWidgetItem *yearItem = ui->tableWidget->item(row, 1);
+        const QString rowYear = yearItem ? yearItem->text() : "";
+
+        if (rowTitle == sanitizedTitle && rowYear == movie.year)
         {
             // store imdbID on the row's title item so the IMDb button can open direct URL
             QTableWidgetItem *titleItem = ui->tableWidget->item(row, 0);
@@ -1625,7 +1629,11 @@ void MainWindow::onMovieFetchedFromDatabase(const Movie &movie)
 
         const QString rowTitle = sanitizeForWindowsFolder(item->text());
 
-        if (rowTitle == sanitizedTitle)
+        // Also check the year to match the correct movie
+        QTableWidgetItem *yearItem = ui->tableWidget->item(row, 1);
+        const QString rowYear = yearItem ? yearItem->text() : "";
+
+        if (rowTitle == sanitizedTitle && rowYear == movie.year)
         {
             // store imdbID on the row's title item so the IMDb button can open direct URL
             QTableWidgetItem *titleItem = ui->tableWidget->item(row, 0);

@@ -61,7 +61,7 @@ bool MovieDataRefresher::showOverwriteDialog(const QString &title, const Movie &
     if (result == QDialog::Accepted)
     {
         // User confirmed - delete the existing entry
-        movieDb->deleteMovie(title);
+        movieDb->deleteMovie(existingMovie.title, existingMovie.year);
         if (statusBar)
             statusBar->showMessage(QString("Refreshing data for '%1' from IMDb...").arg(title), 3000);
         return true;

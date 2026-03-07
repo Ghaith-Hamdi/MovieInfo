@@ -23,12 +23,13 @@ OmdbClient::~OmdbClient()
 
 Movie OmdbClient::getExistingMovieData(const QString &movieName)
 {
+    // Note: This method cannot determine year from just the movie name
+    // It's recommended to use the cache methods that accept year parameter
     if (movieDb)
     {
-        // Use cached lookup for speed
-        Movie movie = movieDb->getMovieFromCache(movieName);
-        if (!movie.title.isEmpty())
-            return movie;
+        // This won't work properly anymore since we need year
+        // Kept for backward compatibility but will return empty
+        qDebug() << "Warning: getExistingMovieData called without year parameter";
     }
     return Movie(); // Return empty movie if not found
 }
@@ -37,11 +38,13 @@ void OmdbClient::fetchMovie(const QString &movieName, int year, bool forceRefres
 {
     qDebug() << "Fetching movie:" << movieName << "| Year:" << year;
 
+    QString yearStr = (year > 0) ? QString::number(year) : "";
+
     // Check local database cache first (unless force refresh is requested)
-    if (!forceRefresh && movieDb)
+    if (!forceRefresh && movieDb && !yearStr.isEmpty())
     {
         // Try exact match first using cache (fastest)
-        Movie movie = movieDb->getMovieFromCache(movieName);
+        Movie movie = movieDb->getMovieFromCache(movieName, yearStr);
         if (!movie.title.isEmpty())
         {
             qDebug() << "✓ Found in cache (exact match):" << movieName;
@@ -50,7 +53,7 @@ void OmdbClient::fetchMovie(const QString &movieName, int year, bool forceRefres
         }
 
         // Try sanitized match using cache
-        movie = movieDb->getMovieBySanitizedTitleFromCache(movieName);
+        movie = movieDb->getMovieBySanitizedTitleFromCache(movieName, yearStr);
         if (!movie.title.isEmpty())
         {
             qDebug() << "✓ Found in cache (sanitized match):" << movie.title;
@@ -62,9 +65,9 @@ void OmdbClient::fetchMovie(const QString &movieName, int year, bool forceRefres
     }
 
     // If forceRefresh is true and movie exists, emit signal to ask for confirmation
-    if (forceRefresh && movieDb && movieDb->movieExistsInCache(movieName))
+    if (forceRefresh && movieDb && !yearStr.isEmpty() && movieDb->movieExistsInCache(movieName, yearStr))
     {
-        Movie existingMovie = movieDb->getMovieFromCache(movieName);
+        Movie existingMovie = movieDb->getMovieFromCache(movieName, yearStr);
         if (!existingMovie.title.isEmpty())
         {
             qDebug() << "Movie exists in cache, requesting confirmation for refresh:" << movieName;
