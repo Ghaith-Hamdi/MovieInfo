@@ -17,8 +17,6 @@ public:
     explicit SettingsDialog(QWidget *parent = nullptr);
     ~SettingsDialog();
 
-    // Getters for settings
-    bool shouldShowFetchSummary() const;
 
 private slots:
     void onSaveClicked();

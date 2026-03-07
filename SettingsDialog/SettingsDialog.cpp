@@ -147,9 +147,3 @@ void SettingsDialog::onCancelClicked()
 {
     reject();
 }
-
-bool SettingsDialog::shouldShowFetchSummary() const
-{
-    QSettings settings("MovieInfo", "MovieInfoApp");
-    return settings.value("fetch/showSummary", true).toBool();
-}

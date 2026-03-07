@@ -304,13 +304,6 @@ void MainWindow::dropEvent(QDropEvent *event)
 // VIDEO PROCESSING
 // ========================================================================
 
-void MainWindow::processVideos(const QStringList &filePaths)
-{
-    for (const QString &filePath : filePaths)
-    {
-        processVideos(filePath, true);
-    }
-}
 
 QPushButton *MainWindow::createActionButton(const QString &text, const QString &iconPath, const QString &styleSheet, const QString &objectName)
 {
@@ -551,13 +544,6 @@ void MainWindow::processVideos(const QString &path, bool isSingleFile)
 // VIDEO METADATA METHODS
 // ========================================================================
 
-QString MainWindow::runFfprobe(const QStringList &args)
-{
-    QProcess ffprobe;
-    ffprobe.start("ffprobe", args);
-    ffprobe.waitForFinished();
-    return ffprobe.readAllStandardOutput().trimmed();
-}
 
 MainWindow::VideoMetadata MainWindow::getVideoMetadataBatch(const QString &filePath)
 {

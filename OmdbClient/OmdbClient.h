@@ -23,7 +23,6 @@ public:
     ~OmdbClient();
 
     void fetchMovie(const QString &movieName, int year = 0, bool forceRefresh = false);
-    Movie getExistingMovieData(const QString &movieName);
 
 signals:
     void movieFetched(const Movie &movie);

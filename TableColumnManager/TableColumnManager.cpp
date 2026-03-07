@@ -105,11 +105,6 @@ void TableColumnManager::loadSettings()
     loadColumnOrderSettings();
 }
 
-void TableColumnManager::saveSettings()
-{
-    saveColumnVisibilitySettings();
-    saveColumnOrderSettings();
-}
 
 void TableColumnManager::onSelectAllColumnsClicked()
 {

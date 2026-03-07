@@ -17,7 +17,6 @@ public:
     void setupColumnVisibilityMenu();
     void setupColumnReorderingMenu();
     void loadSettings();
-    void saveSettings();
 
 private slots:
     void onSelectAllColumnsClicked();

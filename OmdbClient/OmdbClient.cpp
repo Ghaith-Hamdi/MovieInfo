@@ -21,18 +21,6 @@ OmdbClient::~OmdbClient()
 {
 }
 
-Movie OmdbClient::getExistingMovieData(const QString &movieName)
-{
-    // Note: This method cannot determine year from just the movie name
-    // It's recommended to use the cache methods that accept year parameter
-    if (movieDb)
-    {
-        // This won't work properly anymore since we need year
-        // Kept for backward compatibility but will return empty
-        qDebug() << "Warning: getExistingMovieData called without year parameter";
-    }
-    return Movie(); // Return empty movie if not found
-}
 
 void OmdbClient::fetchMovie(const QString &movieName, int year, bool forceRefresh)
 {

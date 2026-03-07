@@ -124,12 +124,10 @@ private:
 
     // ===== Video Processing Methods =====
     void processVideos(const QString &path, bool isSingleFile);
-    void processVideos(const QStringList &filePaths);
     QPair<QString, QString> parseFolderName(const QString &folderName);
 
     // ===== Video Metadata Methods =====
     VideoMetadata getVideoMetadataBatch(const QString &filePath);
-    QString runFfprobe(const QStringList &args);
     QString getDecade(const QString &year);
 
     // ===== UI Widget Creation =====
