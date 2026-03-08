@@ -20,6 +20,7 @@ namespace Models
             FilePathRole,
             FolderTitleRole,
             FolderYearRole,
+            ImdbIdRole,
         };
 
         explicit MovieTableModel(QObject *parent = nullptr);

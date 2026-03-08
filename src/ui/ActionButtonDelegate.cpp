@@ -15,10 +15,10 @@ namespace UI
     // -----------------------------------------------------------------------
     // Layout constants
     // -----------------------------------------------------------------------
-    static const int kBtnW    = 52;   // button width
-    static const int kBtnH    = 22;   // button height
-    static const int kSpacing =  4;   // gap between buttons
-    static const int kMarginX =  4;   // left edge margin inside the cell
+    static const int kBtnW = 52;   // button width
+    static const int kBtnH = 22;   // button height
+    static const int kSpacing = 4; // gap between buttons
+    static const int kMarginX = 4; // left edge margin inside the cell
 
     static QRect buttonRect(int i, const QStyleOptionViewItem &option)
     {
@@ -27,11 +27,17 @@ namespace UI
         return QRect(x, y, kBtnW, kBtnH);
     }
 
-    struct BtnDef { const char *label; QColor bg; QColor bgHover; QColor text; };
+    struct BtnDef
+    {
+        const char *label;
+        QColor bg;
+        QColor bgHover;
+        QColor text;
+    };
     static const BtnDef kBtns[3] = {
-        { "Open", QColor("#1a5fb4"), QColor("#2472d4"), QColor("#ffffff") },
-        { "IMDb", QColor("#c8860a"), QColor("#e8a020"), QColor("#ffffff") },
-        { "Pahe", QColor("#1c7a39"), QColor("#24a34c"), QColor("#ffffff") },
+        {"Open", QColor("#1a5fb4"), QColor("#2472d4"), QColor("#ffffff")},
+        {"IMDb", QColor("#c8860a"), QColor("#e8a020"), QColor("#ffffff")},
+        {"Pahe", QColor("#1c7a39"), QColor("#24a34c"), QColor("#ffffff")},
     };
 
     // -----------------------------------------------------------------------
@@ -72,7 +78,8 @@ namespace UI
     QSize ActionButtonDelegate::sizeHint(const QStyleOptionViewItem &option,
                                          const QModelIndex &index) const
     {
-        Q_UNUSED(option); Q_UNUSED(index);
+        Q_UNUSED(option);
+        Q_UNUSED(index);
         return QSize(3 * kBtnW + 2 * kSpacing + 2 * kMarginX, kBtnH + 8);
     }
 
@@ -99,14 +106,22 @@ namespace UI
                 continue;
 
             QString filePath = index.data(Models::MovieTableModel::FilePathRole).toString();
-            QString title    = index.data(Models::MovieTableModel::FolderTitleRole).toString();
-            int     year     = index.data(Models::MovieTableModel::FolderYearRole).toInt();
-            QString yearStr  = year > 0 ? QString::number(year) : "";
+            QString title = index.data(Models::MovieTableModel::FolderTitleRole).toString();
+            int year = index.data(Models::MovieTableModel::FolderYearRole).toInt();
+            QString yearStr = year > 0 ? QString::number(year) : "";
+            QString imdbId = index.data(Models::MovieTableModel::ImdbIdRole).toString();
 
-            switch (i) {
-            case 0: emit openFileClicked(filePath);           break;
-            case 1: emit imdbClicked(title, yearStr, "");     break;
-            case 2: emit paheClicked(title, yearStr);         break;
+            switch (i)
+            {
+            case 0:
+                emit openFileClicked(filePath);
+                break;
+            case 1:
+                emit imdbClicked(title, yearStr, imdbId);
+                break;
+            case 2:
+                emit paheClicked(title, yearStr);
+                break;
             }
             return true;
         }

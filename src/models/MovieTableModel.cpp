@@ -39,6 +39,8 @@ namespace Models
             return vf.folderTitle;
         if (role == FolderYearRole)
             return vf.folderYear;
+        if (role == ImdbIdRole)
+            return vf.metadata ? vf.metadata->imdbId : QString();
 
         if (role == Qt::DisplayRole || role == RawValueRole)
         {
