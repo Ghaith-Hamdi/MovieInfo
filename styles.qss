@@ -32,30 +32,31 @@ QToolBar::separator {
     margin: 0 8px;
 }
 
-/* === TABLE WIDGET === */
-QTableWidget {
+/* === TABLE === */
+QTableView, QTableWidget {
     background-color: #0d1117;
     border: 1px solid #30363d;
     border-radius: 8px;
-    gridline-color: transparent;
+    gridline-color: #21262d;
     selection-background-color: #1f6feb;
     alternate-background-color: #161b22;
     color: #e6edf3;
     outline: none;
 }
 
-QTableWidget::item {
-    padding: 10px 8px;
+QTableView::item, QTableWidget::item {
+    padding: 6px 8px;
     border: none;
     border-bottom: 1px solid #21262d;
+    min-height: 26px;
 }
 
-QTableWidget::item:selected {
+QTableView::item:selected, QTableWidget::item:selected {
     background-color: #1f6feb;
     color: #ffffff;
 }
 
-QTableWidget::item:hover:!selected {
+QTableView::item:hover:!selected, QTableWidget::item:hover:!selected {
     background-color: #21262d;
 }
 
@@ -87,10 +88,11 @@ QPushButton {
     background-color: #21262d;
     color: #c9d1d9;
     border: 1px solid #30363d;
-    padding: 8px 16px;
+    padding: 6px 14px;
     border-radius: 6px;
     font-weight: 500;
-    font-size: 13px;
+    font-size: 12px;
+    min-height: 26px;
 }
 
 QPushButton:hover {
@@ -262,14 +264,20 @@ QComboBox QAbstractItemView::item:selected {
 
 /* === LABELS === */
 QLabel {
-    color: #8b949e;
+    color: #c9d1d9;
     font-size: 13px;
 }
 
-#countLabel {
+/* Muted labels used as secondary info */
+#countLabel, QStatusBar QLabel {
     color: #6e7681;
     font-size: 12px;
     padding: 0 8px;
+}
+
+/* Header section labels */
+QHeaderView::section {
+    /* inherits from the QHeaderView rule above */
 }
 
 /* === SCROLL BARS === */
@@ -471,21 +479,101 @@ QMessageBox QPushButton {
     min-width: 70px;
 }
 
-/* === GROUP BOX (if still used) === */
+/* === GROUP BOX === */
 QGroupBox {
-    background-color: transparent;
-    border: none;
-    margin-top: 8px;
-    padding: 8px;
+    background-color: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    margin-top: 16px;
+    padding: 12px 8px 8px 8px;
     font-size: 12px;
-    color: #8b949e;
+    color: #c9d1d9;
 }
 
 QGroupBox::title {
     subcontrol-origin: margin;
     subcontrol-position: top left;
-    left: 8px;
-    padding: 0 4px;
-    color: #8b949e;
+    left: 10px;
+    top: -8px;
+    padding: 2px 6px;
+    background-color: #161b22;
+    color: #e6edf3;
     font-weight: 600;
+    font-size: 12px;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+}
+
+/* === CHECK BOX === */
+QCheckBox {
+    color: #c9d1d9;
+    font-size: 13px;
+    spacing: 6px;
+}
+
+QCheckBox::indicator {
+    width: 15px;
+    height: 15px;
+    border: 1px solid #484f58;
+    border-radius: 3px;
+    background-color: #21262d;
+}
+
+QCheckBox::indicator:checked {
+    background-color: #1f6feb;
+    border-color: #388bfd;
+}
+
+QCheckBox::indicator:checked:hover {
+    background-color: #388bfd;
+}
+
+QCheckBox::indicator:hover {
+    border-color: #e6edf3;
+}
+
+QCheckBox:disabled {
+    color: #484f58;
+}
+
+QCheckBox::indicator:disabled {
+    background-color: #161b22;
+    border-color: #30363d;
+}
+
+/* === SCROLL AREA (for Settings dialog columns list) === */
+QScrollArea {
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    background-color: #0d1117;
+}
+
+/* === SPIN BOX === */
+QSpinBox, QDoubleSpinBox {
+    background-color: #21262d;
+    color: #e6edf3;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    padding: 4px 8px;
+    min-height: 24px;
+}
+
+QSpinBox:hover, QDoubleSpinBox:hover {
+    border-color: #484f58;
+}
+
+QSpinBox:focus, QDoubleSpinBox:focus {
+    border-color: #1f6feb;
+}
+
+QSpinBox::up-button, QDoubleSpinBox::up-button,
+QSpinBox::down-button, QDoubleSpinBox::down-button {
+    background-color: #30363d;
+    border: none;
+    width: 16px;
+}
+
+QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover,
+QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {
+    background-color: #484f58;
 }

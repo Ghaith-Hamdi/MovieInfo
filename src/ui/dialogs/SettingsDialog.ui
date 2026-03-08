@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SettingsDialog</class>
+ <widget class="QDialog" name="SettingsDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>460</width>
+    <height>520</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Settings</string>
+  </property>
+  <layout class="QVBoxLayout" name="mainLayout">
+   <property name="spacing">
+    <number>12</number>
+   </property>
+   <!-- API Settings -->
+   <item>
+    <widget class="QGroupBox" name="apiGroup">
+     <property name="title">
+      <string>API Settings</string>
+     </property>
+     <layout class="QFormLayout" name="apiForm">
+      <item row="0" column="0">
+       <widget class="QLabel" name="apiKeyLabel">
+        <property name="text">
+         <string>OMDb API Key:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="apiKeyEdit">
+        <property name="placeholderText">
+         <string>Enter OMDb API key</string>
+        </property>
+        <property name="echoMode">
+         <enum>QLineEdit::Password</enum>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <!-- Display Settings -->
+   <item>
+    <widget class="QGroupBox" name="displayGroup">
+     <property name="title">
+      <string>Display Settings</string>
+     </property>
+     <layout class="QVBoxLayout" name="displayLayout">
+      <item>
+       <widget class="QCheckBox" name="showFetchSummaryCheck">
+        <property name="text">
+         <string>Show fetch summary after loading</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <!-- Quality Rules -->
+   <item>
+    <widget class="QGroupBox" name="qualityGroup">
+     <property name="title">
+      <string>High-Quality Criteria</string>
+     </property>
+     <layout class="QFormLayout" name="qualityForm">
+      <item row="0" column="0">
+       <widget class="QLabel" name="minVotesLabel">
+        <property name="text">
+         <string>Min IMDb Votes:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QSpinBox" name="minVotesSpin">
+        <property name="minimum">
+         <number>0</number>
+        </property>
+        <property name="maximum">
+         <number>10000000</number>
+        </property>
+        <property name="singleStep">
+         <number>10000</number>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="minRatingLabel">
+        <property name="text">
+         <string>Min IMDb Rating:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QDoubleSpinBox" name="minRatingSpin">
+        <property name="minimum">
+         <double>0.000000000000000</double>
+        </property>
+        <property name="maximum">
+         <double>10.000000000000000</double>
+        </property>
+        <property name="singleStep">
+         <double>0.500000000000000</double>
+        </property>
+        <property name="decimals">
+         <number>1</number>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <!-- Column Visibility (scroll area populated at runtime) -->
+   <item>
+    <widget class="QGroupBox" name="columnsGroup">
+     <property name="title">
+      <string>Column Visibility</string>
+     </property>
+     <layout class="QVBoxLayout" name="columnsGroupLayout">
+      <property name="leftMargin">
+       <number>8</number>
+      </property>
+      <property name="topMargin">
+       <number>8</number>
+      </property>
+      <property name="rightMargin">
+       <number>8</number>
+      </property>
+      <property name="bottomMargin">
+       <number>8</number>
+      </property>
+      <item>
+       <widget class="QScrollArea" name="columnsScrollArea">
+        <property name="widgetResizable">
+         <bool>true</bool>
+        </property>
+        <property name="horizontalScrollBarPolicy">
+         <enum>Qt::ScrollBarAlwaysOff</enum>
+        </property>
+        <property name="minimumHeight">
+         <number>120</number>
+        </property>
+        <property name="maximumHeight">
+         <number>180</number>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <!-- Button box -->
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Save</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+</ui>

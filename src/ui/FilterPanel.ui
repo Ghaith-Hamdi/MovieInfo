@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>FilterPanel</class>
+ <widget class="QWidget" name="FilterPanel">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>40</height>
+   </rect>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout">
+   <property name="spacing">
+    <number>8</number>
+   </property>
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>4</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>4</number>
+   </property>
+   <item>
+    <widget class="QLineEdit" name="searchEdit">
+     <property name="minimumWidth">
+      <number>200</number>
+     </property>
+     <property name="placeholderText">
+      <string>Search movies...</string>
+     </property>
+     <property name="clearButtonEnabled">
+      <bool>true</bool>
+     </property>
+     <property name="toolTip">
+      <string>Search through all movie titles, directors, actors, and other fields</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="decadeLabel">
+     <property name="text">
+      <string>Decade:</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="decadeCombo">
+     <property name="minimumWidth">
+      <number>80</number>
+     </property>
+     <property name="toolTip">
+      <string>Filter movies by release decade</string>
+     </property>
+     <item>
+      <property name="text">
+       <string>All</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="aspectRatioLabel">
+     <property name="text">
+      <string>Aspect Ratio:</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="aspectRatioCombo">
+     <property name="minimumWidth">
+      <number>100</number>
+     </property>
+     <property name="toolTip">
+      <string>Filter movies by aspect ratio</string>
+     </property>
+     <item>
+      <property name="text">
+       <string>All</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>16:9</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>Ultra-Wide</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="qualityLabel">
+     <property name="text">
+      <string>Quality:</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QComboBox" name="qualityCombo">
+     <property name="minimumWidth">
+      <number>80</number>
+     </property>
+     <property name="toolTip">
+      <string>Filter movies by video quality (4K, 1080p, 720p, etc.)</string>
+     </property>
+     <item>
+      <property name="text">
+       <string>All</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item>
+    <spacer name="filterSpacer">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>40</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+</ui>

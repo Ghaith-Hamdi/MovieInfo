@@ -12,18 +12,18 @@
 #include <QtCore/QVariant>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QComboBox>
+#include <QtWidgets/QFrame>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QHeaderView>
-#include <QtWidgets/QLabel>
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QSpacerItem>
 #include <QtWidgets/QStatusBar>
-#include <QtWidgets/QTableWidget>
-#include <QtWidgets/QToolBar>
+#include <QtWidgets/QTableView>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
+#include <ui/FilterPanel.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -31,141 +31,148 @@ class Ui_MainWindow
 {
 public:
     QWidget *centralwidget;
-    QVBoxLayout *verticalLayout_3;
-    QHBoxLayout *searchFilterLayout;
-    QLineEdit *searchLineEdit;
-    QComboBox *comboBoxQuality;
-    QComboBox *comboBoxDecade;
-    QComboBox *comboBoxAspectRatio;
-    QPushButton *clearFiltersButton;
-    QSpacerItem *horizontalSpacer;
-    QLabel *countLabel;
-    QTableWidget *tableWidget;
-    QHBoxLayout *actionsLayout;
-    QPushButton *selectFolderButton;
-    QPushButton *exportButton;
-    QPushButton *refreshButton;
-    QPushButton *organizeAllButton;
-    QSpacerItem *horizontalSpacer_2;
-    QStatusBar *statusbar;
-    QToolBar *toolBar;
+    QVBoxLayout *verticalLayout;
+    QHBoxLayout *toolbarLayout;
+    QComboBox *driveCombo;
+    QLineEdit *yearEdit;
+    QPushButton *loadBtn;
+    QFrame *line1;
+    QPushButton *toMoveBtn;
+    QFrame *line2;
+    QPushButton *clearBtn;
+    QSpacerItem *toolbarSpacer;
+    UI::FilterPanel *filterPanel;
+    QTableView *tableView;
+    QHBoxLayout *bottomLayout;
+    QPushButton *addFolderBtn;
+    QPushButton *exportBtn;
+    QPushButton *organizeAllBtn;
+    QPushButton *settingsBtn;
+    QSpacerItem *bottomSpacer;
+    QStatusBar *statusBar;
 
     void setupUi(QMainWindow *MainWindow)
     {
         if (MainWindow->objectName().isEmpty())
             MainWindow->setObjectName("MainWindow");
-        MainWindow->resize(1600, 900);
+        MainWindow->resize(1400, 900);
         centralwidget = new QWidget(MainWindow);
         centralwidget->setObjectName("centralwidget");
-        verticalLayout_3 = new QVBoxLayout(centralwidget);
-        verticalLayout_3->setSpacing(12);
-        verticalLayout_3->setObjectName("verticalLayout_3");
-        verticalLayout_3->setContentsMargins(16, 12, 16, 12);
-        searchFilterLayout = new QHBoxLayout();
-        searchFilterLayout->setSpacing(12);
-        searchFilterLayout->setObjectName("searchFilterLayout");
-        searchLineEdit = new QLineEdit(centralwidget);
-        searchLineEdit->setObjectName("searchLineEdit");
-        searchLineEdit->setMinimumSize(QSize(250, 36));
+        verticalLayout = new QVBoxLayout(centralwidget);
+        verticalLayout->setSpacing(4);
+        verticalLayout->setObjectName("verticalLayout");
+        verticalLayout->setContentsMargins(8, 8, 8, 8);
+        toolbarLayout = new QHBoxLayout();
+        toolbarLayout->setSpacing(4);
+        toolbarLayout->setObjectName("toolbarLayout");
+        driveCombo = new QComboBox(centralwidget);
+        driveCombo->setObjectName("driveCombo");
+        driveCombo->setMinimumWidth(70);
 
-        searchFilterLayout->addWidget(searchLineEdit);
+        toolbarLayout->addWidget(driveCombo);
 
-        comboBoxQuality = new QComboBox(centralwidget);
-        comboBoxQuality->setObjectName("comboBoxQuality");
-        comboBoxQuality->setMinimumSize(QSize(100, 36));
+        yearEdit = new QLineEdit(centralwidget);
+        yearEdit->setObjectName("yearEdit");
+        yearEdit->setMaxLength(4);
+        yearEdit->setMinimumWidth(70);
+        yearEdit->setMaximumWidth(80);
 
-        searchFilterLayout->addWidget(comboBoxQuality);
+        toolbarLayout->addWidget(yearEdit);
 
-        comboBoxDecade = new QComboBox(centralwidget);
-        comboBoxDecade->setObjectName("comboBoxDecade");
-        comboBoxDecade->setMinimumSize(QSize(100, 36));
+        loadBtn = new QPushButton(centralwidget);
+        loadBtn->setObjectName("loadBtn");
+        loadBtn->setMinimumWidth(70);
 
-        searchFilterLayout->addWidget(comboBoxDecade);
+        toolbarLayout->addWidget(loadBtn);
 
-        comboBoxAspectRatio = new QComboBox(centralwidget);
-        comboBoxAspectRatio->setObjectName("comboBoxAspectRatio");
-        comboBoxAspectRatio->setMinimumSize(QSize(110, 36));
+        line1 = new QFrame(centralwidget);
+        line1->setObjectName("line1");
+        line1->setFrameShape(QFrame::VLine);
+        line1->setFrameShadow(QFrame::Sunken);
 
-        searchFilterLayout->addWidget(comboBoxAspectRatio);
+        toolbarLayout->addWidget(line1);
 
-        clearFiltersButton = new QPushButton(centralwidget);
-        clearFiltersButton->setObjectName("clearFiltersButton");
-        clearFiltersButton->setMinimumSize(QSize(70, 36));
+        toMoveBtn = new QPushButton(centralwidget);
+        toMoveBtn->setObjectName("toMoveBtn");
+        toMoveBtn->setMinimumWidth(80);
 
-        searchFilterLayout->addWidget(clearFiltersButton);
+        toolbarLayout->addWidget(toMoveBtn);
 
-        horizontalSpacer = new QSpacerItem(40, 20, QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Minimum);
+        line2 = new QFrame(centralwidget);
+        line2->setObjectName("line2");
+        line2->setFrameShape(QFrame::VLine);
+        line2->setFrameShadow(QFrame::Sunken);
 
-        searchFilterLayout->addItem(horizontalSpacer);
+        toolbarLayout->addWidget(line2);
 
-        countLabel = new QLabel(centralwidget);
-        countLabel->setObjectName("countLabel");
+        clearBtn = new QPushButton(centralwidget);
+        clearBtn->setObjectName("clearBtn");
+        clearBtn->setMinimumWidth(60);
 
-        searchFilterLayout->addWidget(countLabel);
+        toolbarLayout->addWidget(clearBtn);
+
+        toolbarSpacer = new QSpacerItem(40, 20, QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Minimum);
+
+        toolbarLayout->addItem(toolbarSpacer);
 
 
-        verticalLayout_3->addLayout(searchFilterLayout);
+        verticalLayout->addLayout(toolbarLayout);
 
-        tableWidget = new QTableWidget(centralwidget);
-        tableWidget->setObjectName("tableWidget");
+        filterPanel = new UI::FilterPanel(centralwidget);
+        filterPanel->setObjectName("filterPanel");
+
+        verticalLayout->addWidget(filterPanel);
+
+        tableView = new QTableView(centralwidget);
+        tableView->setObjectName("tableView");
         QSizePolicy sizePolicy(QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Expanding);
         sizePolicy.setHorizontalStretch(0);
         sizePolicy.setVerticalStretch(1);
-        sizePolicy.setHeightForWidth(tableWidget->sizePolicy().hasHeightForWidth());
-        tableWidget->setSizePolicy(sizePolicy);
-        tableWidget->setSizeAdjustPolicy(QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents);
-        tableWidget->setAlternatingRowColors(true);
-        tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
-        tableWidget->setSortingEnabled(true);
-        tableWidget->setCornerButtonEnabled(false);
-        tableWidget->setShowGrid(false);
+        sizePolicy.setHeightForWidth(tableView->sizePolicy().hasHeightForWidth());
+        tableView->setSizePolicy(sizePolicy);
+        tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+        tableView->setSelectionMode(QAbstractItemView::SingleSelection);
+        tableView->setAlternatingRowColors(true);
+        tableView->setShowGrid(true);
+        tableView->setSortingEnabled(true);
+        tableView->setContextMenuPolicy(Qt::CustomContextMenu);
 
-        verticalLayout_3->addWidget(tableWidget);
+        verticalLayout->addWidget(tableView);
 
-        actionsLayout = new QHBoxLayout();
-        actionsLayout->setSpacing(10);
-        actionsLayout->setObjectName("actionsLayout");
-        selectFolderButton = new QPushButton(centralwidget);
-        selectFolderButton->setObjectName("selectFolderButton");
-        selectFolderButton->setMinimumSize(QSize(100, 38));
+        bottomLayout = new QHBoxLayout();
+        bottomLayout->setSpacing(4);
+        bottomLayout->setObjectName("bottomLayout");
+        addFolderBtn = new QPushButton(centralwidget);
+        addFolderBtn->setObjectName("addFolderBtn");
 
-        actionsLayout->addWidget(selectFolderButton);
+        bottomLayout->addWidget(addFolderBtn);
 
-        exportButton = new QPushButton(centralwidget);
-        exportButton->setObjectName("exportButton");
-        exportButton->setMinimumSize(QSize(80, 38));
+        exportBtn = new QPushButton(centralwidget);
+        exportBtn->setObjectName("exportBtn");
 
-        actionsLayout->addWidget(exportButton);
+        bottomLayout->addWidget(exportBtn);
 
-        refreshButton = new QPushButton(centralwidget);
-        refreshButton->setObjectName("refreshButton");
-        refreshButton->setMinimumSize(QSize(80, 38));
+        organizeAllBtn = new QPushButton(centralwidget);
+        organizeAllBtn->setObjectName("organizeAllBtn");
 
-        actionsLayout->addWidget(refreshButton);
+        bottomLayout->addWidget(organizeAllBtn);
 
-        organizeAllButton = new QPushButton(centralwidget);
-        organizeAllButton->setObjectName("organizeAllButton");
-        organizeAllButton->setMinimumSize(QSize(100, 38));
+        settingsBtn = new QPushButton(centralwidget);
+        settingsBtn->setObjectName("settingsBtn");
 
-        actionsLayout->addWidget(organizeAllButton);
+        bottomLayout->addWidget(settingsBtn);
 
-        horizontalSpacer_2 = new QSpacerItem(40, 20, QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Minimum);
+        bottomSpacer = new QSpacerItem(40, 20, QSizePolicy::Policy::Expanding, QSizePolicy::Policy::Minimum);
 
-        actionsLayout->addItem(horizontalSpacer_2);
+        bottomLayout->addItem(bottomSpacer);
 
 
-        verticalLayout_3->addLayout(actionsLayout);
+        verticalLayout->addLayout(bottomLayout);
 
         MainWindow->setCentralWidget(centralwidget);
-        statusbar = new QStatusBar(MainWindow);
-        statusbar->setObjectName("statusbar");
-        statusbar->setSizeGripEnabled(true);
-        MainWindow->setStatusBar(statusbar);
-        toolBar = new QToolBar(MainWindow);
-        toolBar->setObjectName("toolBar");
-        toolBar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-        toolBar->setIconSize(QSize(20, 20));
-        MainWindow->addToolBar(Qt::ToolBarArea::TopToolBarArea, toolBar);
+        statusBar = new QStatusBar(MainWindow);
+        statusBar->setObjectName("statusBar");
+        MainWindow->setStatusBar(statusBar);
 
         retranslateUi(MainWindow);
 
@@ -175,41 +182,38 @@ public:
     void retranslateUi(QMainWindow *MainWindow)
     {
         MainWindow->setWindowTitle(QCoreApplication::translate("MainWindow", "MovieInfo - Video Library Manager", nullptr));
-        searchLineEdit->setPlaceholderText(QCoreApplication::translate("MainWindow", "Search movies...", nullptr));
 #if QT_CONFIG(tooltip)
-        searchLineEdit->setToolTip(QCoreApplication::translate("MainWindow", "Search by title, genre, actor, or director", nullptr));
+        driveCombo->setToolTip(QCoreApplication::translate("MainWindow", "Select drive", nullptr));
 #endif // QT_CONFIG(tooltip)
+        yearEdit->setPlaceholderText(QCoreApplication::translate("MainWindow", "Year", nullptr));
 #if QT_CONFIG(tooltip)
-        comboBoxQuality->setToolTip(QCoreApplication::translate("MainWindow", "Filter by quality", nullptr));
+        yearEdit->setToolTip(QCoreApplication::translate("MainWindow", "Enter year (e.g., 2023)", nullptr));
 #endif // QT_CONFIG(tooltip)
+        loadBtn->setText(QCoreApplication::translate("MainWindow", "Load", nullptr));
 #if QT_CONFIG(tooltip)
-        comboBoxDecade->setToolTip(QCoreApplication::translate("MainWindow", "Filter by decade", nullptr));
+        loadBtn->setToolTip(QCoreApplication::translate("MainWindow", "Load movies from selected drive and year", nullptr));
 #endif // QT_CONFIG(tooltip)
+        toMoveBtn->setText(QCoreApplication::translate("MainWindow", "To Move", nullptr));
 #if QT_CONFIG(tooltip)
-        comboBoxAspectRatio->setToolTip(QCoreApplication::translate("MainWindow", "Filter by aspect ratio", nullptr));
+        toMoveBtn->setToolTip(QCoreApplication::translate("MainWindow", "Show movies that need to be relocated", nullptr));
 #endif // QT_CONFIG(tooltip)
-        clearFiltersButton->setText(QCoreApplication::translate("MainWindow", "Clear", nullptr));
+        clearBtn->setText(QCoreApplication::translate("MainWindow", "Clear", nullptr));
 #if QT_CONFIG(tooltip)
-        clearFiltersButton->setToolTip(QCoreApplication::translate("MainWindow", "Reset all filters", nullptr));
+        clearBtn->setToolTip(QCoreApplication::translate("MainWindow", "Clear all movies from table", nullptr));
 #endif // QT_CONFIG(tooltip)
-        countLabel->setText(QCoreApplication::translate("MainWindow", "0 movies", nullptr));
-        selectFolderButton->setText(QCoreApplication::translate("MainWindow", "Add Folder", nullptr));
+        addFolderBtn->setText(QCoreApplication::translate("MainWindow", "Add Folder", nullptr));
 #if QT_CONFIG(tooltip)
-        selectFolderButton->setToolTip(QCoreApplication::translate("MainWindow", "Browse and select a folder containing video files", nullptr));
+        addFolderBtn->setToolTip(QCoreApplication::translate("MainWindow", "Select a folder containing video files", nullptr));
 #endif // QT_CONFIG(tooltip)
-        exportButton->setText(QCoreApplication::translate("MainWindow", "Export", nullptr));
+        exportBtn->setText(QCoreApplication::translate("MainWindow", "Export", nullptr));
 #if QT_CONFIG(tooltip)
-        exportButton->setToolTip(QCoreApplication::translate("MainWindow", "Export library to Excel", nullptr));
+        exportBtn->setToolTip(QCoreApplication::translate("MainWindow", "Export the current library to CSV or JSON", nullptr));
 #endif // QT_CONFIG(tooltip)
-        refreshButton->setText(QCoreApplication::translate("MainWindow", "Refresh", nullptr));
+        organizeAllBtn->setText(QCoreApplication::translate("MainWindow", "Organize All", nullptr));
 #if QT_CONFIG(tooltip)
-        refreshButton->setToolTip(QCoreApplication::translate("MainWindow", "Reload the movie library", nullptr));
+        organizeAllBtn->setToolTip(QCoreApplication::translate("MainWindow", "Organize all movies by aspect ratio into 16-9 or UW folders", nullptr));
 #endif // QT_CONFIG(tooltip)
-        organizeAllButton->setText(QCoreApplication::translate("MainWindow", "Organize All", nullptr));
-#if QT_CONFIG(tooltip)
-        organizeAllButton->setToolTip(QCoreApplication::translate("MainWindow", "Organize all movies by aspect ratio (16:9 or UW)", nullptr));
-#endif // QT_CONFIG(tooltip)
-        toolBar->setWindowTitle(QCoreApplication::translate("MainWindow", "Toolbar", nullptr));
+        settingsBtn->setText(QCoreApplication::translate("MainWindow", "Settings", nullptr));
     } // retranslateUi
 
 };

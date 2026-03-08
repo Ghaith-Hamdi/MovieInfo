@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1400</width>
+    <height>900</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MovieInfo - Video Library Manager</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="spacing">
+     <number>4</number>
+    </property>
+    <property name="leftMargin">
+     <number>8</number>
+    </property>
+    <property name="topMargin">
+     <number>8</number>
+    </property>
+    <property name="rightMargin">
+     <number>8</number>
+    </property>
+    <property name="bottomMargin">
+     <number>8</number>
+    </property>
+    <!-- Top controls row (replaces QToolBar) -->
+    <item>
+     <layout class="QHBoxLayout" name="toolbarLayout">
+      <property name="spacing">
+       <number>4</number>
+      </property>
+      <item>
+       <widget class="QComboBox" name="driveCombo">
+        <property name="minimumWidth">
+         <number>70</number>
+        </property>
+        <property name="toolTip">
+         <string>Select drive</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="yearEdit">
+        <property name="placeholderText">
+         <string>Year</string>
+        </property>
+        <property name="maxLength">
+         <number>4</number>
+        </property>
+        <property name="minimumWidth">
+         <number>70</number>
+        </property>
+        <property name="maximumWidth">
+         <number>80</number>
+        </property>
+        <property name="toolTip">
+         <string>Enter year (e.g., 2023)</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="loadBtn">
+        <property name="text">
+         <string>Load</string>
+        </property>
+        <property name="minimumWidth">
+         <number>70</number>
+        </property>
+        <property name="toolTip">
+         <string>Load movies from selected drive and year</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QFrame" name="line1">
+        <property name="frameShape">
+         <enum>QFrame::VLine</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Sunken</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="toMoveBtn">
+        <property name="text">
+         <string>To Move</string>
+        </property>
+        <property name="minimumWidth">
+         <number>80</number>
+        </property>
+        <property name="toolTip">
+         <string>Show movies that need to be relocated</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QFrame" name="line2">
+        <property name="frameShape">
+         <enum>QFrame::VLine</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Sunken</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="clearBtn">
+        <property name="text">
+         <string>Clear</string>
+        </property>
+        <property name="minimumWidth">
+         <number>60</number>
+        </property>
+        <property name="toolTip">
+         <string>Clear all movies from table</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="toolbarSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+    <!-- Filter panel (promoted custom widget) -->
+    <item>
+     <widget class="UI::FilterPanel" name="filterPanel">
+     </widget>
+    </item>
+    <!-- Main table view -->
+    <item>
+     <widget class="QTableView" name="tableView">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>1</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="selectionBehavior">
+       <enum>QAbstractItemView::SelectRows</enum>
+      </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::SingleSelection</enum>
+      </property>
+      <property name="alternatingRowColors">
+       <bool>true</bool>
+      </property>
+      <property name="showGrid">
+       <bool>true</bool>
+      </property>
+      <property name="sortingEnabled">
+       <bool>true</bool>
+      </property>
+      <property name="contextMenuPolicy">
+       <enum>Qt::CustomContextMenu</enum>
+      </property>
+     </widget>
+    </item>
+    <!-- Bottom action bar -->
+    <item>
+     <layout class="QHBoxLayout" name="bottomLayout">
+      <property name="spacing">
+       <number>4</number>
+      </property>
+      <item>
+       <widget class="QPushButton" name="addFolderBtn">
+        <property name="text">
+         <string>Add Folder</string>
+        </property>
+        <property name="toolTip">
+         <string>Select a folder containing video files</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="exportBtn">
+        <property name="text">
+         <string>Export</string>
+        </property>
+        <property name="toolTip">
+         <string>Export the current library to CSV or JSON</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="organizeAllBtn">
+        <property name="text">
+         <string>Organize All</string>
+        </property>
+        <property name="toolTip">
+         <string>Organize all movies by aspect ratio into 16-9 or UW folders</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="settingsBtn">
+        <property name="text">
+         <string>Settings</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="bottomSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>UI::FilterPanel</class>
+   <extends>QWidget</extends>
+   <header location="global">ui/FilterPanel.h</header>
+  </customwidget>
+ </customwidgets>
+</ui>
