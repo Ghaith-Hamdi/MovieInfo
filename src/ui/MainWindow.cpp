@@ -22,6 +22,11 @@
 #include <QUrl>
 #include <QTableView>
 #include <QStatusBar>
+#include <QProgressBar>
+#include <QLabel>
+#include <QFuture>
+#include <QFutureWatcher>
+#include <QtConcurrent/QtConcurrent>
 namespace UI
 {
 
@@ -76,6 +81,20 @@ namespace UI
         // Populate drive combo
         ui->driveCombo->addItems(m_settings->drives());
 
+        // Status bar widgets: scan progress and current folder label
+        m_scanProgressBar = new QProgressBar(this);
+        m_scanProgressBar->setVisible(false);
+        m_scanProgressBar->setMinimumWidth(200);
+        m_scanProgressBar->setTextVisible(true);
+
+        m_currentFolderLabel = new QLabel(this);
+        m_currentFolderLabel->setText("");
+        m_currentFolderLabel->setMinimumWidth(200);
+        m_currentFolderLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+
+        statusBar()->addPermanentWidget(m_scanProgressBar);
+        statusBar()->addPermanentWidget(m_currentFolderLabel);
+
         setupConnections();
         loadStylesheet();
 
@@ -105,6 +124,10 @@ namespace UI
         // Scan service
         connect(m_scanService, &Services::ScanService::fileProcessed,
                 this, &MainWindow::onFileProcessed);
+        connect(m_scanService, &Services::ScanService::scanStarted,
+                this, &MainWindow::onScanStarted);
+        connect(m_scanService, &Services::ScanService::progress,
+                this, &MainWindow::onScanProgress);
         connect(m_scanService, &Services::ScanService::scanComplete,
                 this, &MainWindow::onScanComplete);
 
@@ -132,6 +155,7 @@ namespace UI
 
         // Toolbar row
         connect(ui->loadBtn, &QPushButton::clicked, this, &MainWindow::onFetchByDriveYearClicked);
+        connect(ui->openLastBtn, &QPushButton::clicked, this, &MainWindow::onOpenLastFolderClicked);
         connect(ui->toMoveBtn, &QPushButton::clicked, this, &MainWindow::onShowMoviesToMoveClicked);
         connect(ui->clearBtn, &QPushButton::clicked, this, &MainWindow::onClearTableClicked);
 
@@ -189,6 +213,10 @@ namespace UI
         m_fromApi = 0;
         m_fetchedFromImdbList.clear();
 
+        // Persist last-used folder so "Open Last" works across flows
+        m_settings->setLastFolder(path);
+        if (m_currentFolderLabel)
+            m_currentFolderLabel->setText(path);
         m_scanService->scanFolder(path, isSingleFile);
     }
 
@@ -202,6 +230,34 @@ namespace UI
 
         statusBar()->showMessage(
             QString("Processing: %1").arg(file.folderTitle));
+    }
+
+    void MainWindow::onScanStarted(int totalFiles)
+    {
+        if (m_scanProgressBar)
+        {
+            m_scanProgressBar->setRange(0, totalFiles);
+            m_scanProgressBar->setValue(0);
+            m_scanProgressBar->setVisible(true);
+        }
+    }
+
+    void MainWindow::onScanProgress(int current, int total, const QString &currentFile)
+    {
+        Q_UNUSED(total);
+        if (m_scanProgressBar)
+        {
+            // If range is zero-length, switch to busy indicator
+            if (m_scanProgressBar->maximum() <= 0)
+                m_scanProgressBar->setRange(0, 0);
+            else
+                m_scanProgressBar->setValue(current);
+        }
+
+        if (m_currentFolderLabel)
+        {
+            m_currentFolderLabel->setText(currentFile);
+        }
     }
 
     void MainWindow::onScanComplete(int total, int cached, int fresh)
@@ -223,6 +279,12 @@ namespace UI
             FetchSummaryDialog dlg(m_fetchedFromImdbList, m_fromDb, m_fromApi, this);
             dlg.exec(); });
         }
+
+        // Hide scan progress and set current folder label to lastFolder
+        if (m_scanProgressBar)
+            m_scanProgressBar->setVisible(false);
+        if (m_currentFolderLabel)
+            m_currentFolderLabel->setText(m_settings->lastFolder());
     }
 
     // ========================================================================
@@ -328,10 +390,18 @@ namespace UI
         }
     }
 
-    void MainWindow::onPaheClicked(const QString &title, const QString &year)
+    void MainWindow::onPaheClicked(const QString &title, const QString &year, const QString &imdbId)
     {
-        QString query = title + " " + year;
-        QString url = "https://pahe.ink/?s=" + QUrl::toPercentEncoding(query);
+        QString url;
+        if (!imdbId.isEmpty())
+        {
+            url = "https://pahe.ink/?s=" + QUrl::toPercentEncoding(imdbId);
+        }
+        else
+        {
+            QString query = title + " " + year;
+            url = "https://pahe.ink/?s=" + QUrl::toPercentEncoding(query);
+        }
         QDesktopServices::openUrl(QUrl(url));
     }
 
@@ -351,6 +421,7 @@ namespace UI
         menu.addAction("Refresh Movie Data from IMDb", this, &MainWindow::onRefreshMovieData);
         menu.addSeparator();
         menu.addAction("Open Containing Folder", this, &MainWindow::onOpenFolder);
+        menu.addAction("Move To Other Disk", this, &MainWindow::onMoveToOtherDisk);
         menu.addAction("Rename Folder", this, &MainWindow::onRenameFolder);
         menu.addAction("Organize by Aspect Ratio", this, &MainWindow::onOrganizeByAspectRatio);
 
@@ -381,7 +452,10 @@ namespace UI
         // If the directory exists, open it
         if (dir.exists())
         {
-            QDesktopServices::openUrl(QUrl::fromLocalFile(dir.absolutePath()));
+            QString p = dir.absolutePath();
+            m_settings->setLastFolder(p);
+            statusBar()->showMessage("Loading folder: " + p);
+            processPath(p, false);
             return;
         }
 
@@ -399,7 +473,12 @@ namespace UI
                 if (entry.compare(searchName, Qt::CaseInsensitive) == 0 ||
                     entry.contains(vf.folderTitle, Qt::CaseInsensitive))
                 {
-                    QDesktopServices::openUrl(QUrl::fromLocalFile(parent.filePath(entry)));
+                    {
+                        QString p = parent.filePath(entry);
+                        m_settings->setLastFolder(p);
+                        statusBar()->showMessage("Loading folder: " + p);
+                        processPath(p, false);
+                    }
                     return;
                 }
             }
@@ -435,7 +514,17 @@ namespace UI
         QString newName = newTitle;
         if (!newYear.isEmpty())
             newName += " (" + newYear + ")";
+        QString originalEntered = newName;
         newName = sanitizeForWindowsFolder(newName).replace('\n', ' ').trimmed();
+        if (newName != originalEntered)
+        {
+            QMessageBox::StandardButton reply = QMessageBox::question(
+                this, "Sanitized Folder Name",
+                QString("The name you entered contains characters that are not allowed on Windows and will be changed to:\n\n%1\n\nProceed?").arg(newName),
+                QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+            if (reply != QMessageBox::Yes)
+                return;
+        }
         if (newName.isEmpty())
         {
             QMessageBox::warning(this, "Error", "Invalid folder name after sanitization.");
@@ -443,9 +532,28 @@ namespace UI
         }
 
         QDir parentDir = movieDir;
-        parentDir.cdUp();
+        if (!parentDir.cdUp())
+        {
+            QMessageBox::warning(this, "Error", "Unable to determine parent directory for rename.");
+            return;
+        }
+
         QString newPath = QDir::cleanPath(parentDir.absoluteFilePath(newName));
         QString currentPath = movieDir.absolutePath();
+
+        // Safety: prevent moving into the same folder or into a subdirectory of itself
+        QString cleanCurrent = QDir::cleanPath(currentPath);
+        QString cleanNew = QDir::cleanPath(newPath);
+        if (cleanNew == cleanCurrent)
+        {
+            QMessageBox::warning(this, "Error", "Target folder is identical to current folder. Rename aborted.");
+            return;
+        }
+        if (cleanNew.startsWith(cleanCurrent + QDir::separator()))
+        {
+            QMessageBox::warning(this, "Error", "Target folder would be created inside the source folder. Rename aborted.");
+            return;
+        }
 
         // Allow case-only renames
         bool isCaseOnly = QDir::cleanPath(currentPath).toLower() == QDir::cleanPath(newPath).toLower();
@@ -455,27 +563,174 @@ namespace UI
             return;
         }
 
-        bool renamed = m_organizeService->moveFolder(
-            QDir::toNativeSeparators(currentPath),
-            QDir::toNativeSeparators(newPath));
-
-        if (renamed)
+        // Run rename/move in background to avoid blocking UI
         {
-            // Update model
-            Core::VideoFile updated = vf;
-            updated.filePath = QDir::toNativeSeparators(newPath) + QDir::separator() + fi.fileName();
-            updated.folderTitle = newTitle;
-            updated.folderYear = newYear.toInt();
-            m_tableModel->updateFile(m_contextMenuRow, updated);
+            QString src = QDir::toNativeSeparators(currentPath);
+            QString dst = QDir::toNativeSeparators(newPath);
+            int row = m_contextMenuRow;
 
-            // Re-fetch metadata
-            m_omdbService->fetchMovie(newTitle, newYear.toInt());
+            QProgressDialog *progress = new QProgressDialog("Renaming folder...", QString(), 0, 0, this);
+            progress->setWindowModality(Qt::WindowModal);
+            progress->setCancelButton(nullptr);
+            progress->setMinimumDuration(0);
+            progress->show();
 
-            QMessageBox::information(this, "Success", "Folder renamed successfully.");
+            QFuture<bool> future = QtConcurrent::run([this, src, dst]()
+                                                     { return m_organizeService->moveFolder(src, dst); });
+            QFutureWatcher<bool> *watcher = new QFutureWatcher<bool>(this);
+            connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher, progress, row, vf, fi, newTitle, newYear, dst]()
+                    {
+                progress->close();
+                bool ok = watcher->result();
+                watcher->deleteLater();
+                if (ok)
+                {
+                    // Update model
+                    Core::VideoFile updated = vf;
+                    updated.filePath = QDir::toNativeSeparators(dst) + QDir::separator() + fi.fileName();
+                    updated.folderTitle = newTitle;
+                    updated.folderYear = newYear.toInt();
+                    m_tableModel->updateFile(row, updated);
+
+                    // Re-fetch metadata
+                    m_omdbService->fetchMovie(newTitle, newYear.toInt());
+
+                    // Persist last folder
+                    m_settings->setLastFolder(dst);
+
+                    QMessageBox::information(nullptr, "Success", "Folder renamed successfully.");
+                }
+                else
+                {
+                    QMessageBox::warning(nullptr, "Error", "Failed to rename folder. Check permissions.");
+                } });
+            watcher->setFuture(future);
         }
+    }
+
+    void MainWindow::onMoveToOtherDisk()
+    {
+        if (m_contextMenuRow < 0)
+            return;
+
+        const auto &vf = m_tableModel->fileAt(m_contextMenuRow);
+        QFileInfo fi(vf.filePath);
+        QDir movieDir = fi.dir();
+
+        QString abs = QDir::cleanPath(movieDir.absolutePath());
+        QString native = QDir::fromNativeSeparators(abs); // use '/' separators
+        if (native.size() < 2)
+        {
+            QMessageBox::warning(this, "Error", "Invalid movie folder path.");
+            return;
+        }
+
+        QString drive = native.mid(0, 2); // e.g. "E:"
+        QString otherDrive;
+        if (drive.compare("D:", Qt::CaseInsensitive) == 0)
+            otherDrive = "E:";
+        else if (drive.compare("E:", Qt::CaseInsensitive) == 0)
+            otherDrive = "D:";
         else
         {
-            QMessageBox::warning(this, "Error", "Failed to rename folder. Check permissions.");
+            QMessageBox::warning(this, "Unsupported Drive", "Move to other disk only supports D: <-> E: drives.");
+            return;
+        }
+
+        // Split path into parts after drive
+        QString rest = native.mid(2);
+        if (rest.startsWith('/'))
+            rest = rest.mid(1);
+        QStringList parts = rest.split('/', Qt::SkipEmptyParts);
+        if (parts.isEmpty())
+        {
+            QMessageBox::warning(this, "Error", "Cannot determine folder hierarchy.");
+            return;
+        }
+
+        QString movieFolderName = parts.takeLast(); // last segment is the movie folder
+        // parts now contains the parent path segments
+
+        QString chosenTargetBase;
+        // Try same depth down to shallowest parent
+        for (int k = 0; k <= parts.size(); ++k)
+        {
+            int endIndex = parts.size() - k; // number of segments to keep
+            QStringList candidateParts = parts.mid(0, endIndex);
+            QString candidatePath;
+            if (candidateParts.isEmpty())
+            {
+                // otherDrive is like "E:", append separator -> "E:\"
+                candidatePath = otherDrive + QDir::separator();
+            }
+            else
+            {
+                // Build path like "E:\parent\sub"
+                QString joined = candidateParts.join(QDir::separator());
+                candidatePath = otherDrive + QDir::separator() + joined;
+            }
+
+            QDir candDir(candidatePath);
+            if (candDir.exists())
+            {
+                chosenTargetBase = candDir.absolutePath();
+                break;
+            }
+        }
+
+        if (chosenTargetBase.isEmpty())
+        {
+            QMessageBox::warning(this, "No Target", "No suitable parent folder found on other drive.");
+            return;
+        }
+
+        QString finalTarget = QDir::cleanPath(chosenTargetBase + QDir::separator() + movieFolderName);
+
+        // Confirm with the user before moving
+        QMessageBox::StandardButton confirm = QMessageBox::question(
+            this,
+            "Confirm Move",
+            QString("Move folder:\n%1\n\nTo:\n%2\n\nProceed?").arg(movieDir.absolutePath(), finalTarget),
+            QMessageBox::Yes | QMessageBox::No,
+            QMessageBox::No);
+        if (confirm != QMessageBox::Yes)
+            return;
+
+        // Run move in background to avoid blocking UI
+        {
+            QString src = QDir::toNativeSeparators(movieDir.absolutePath());
+            QString dst = QDir::toNativeSeparators(finalTarget);
+            int row = m_contextMenuRow;
+            QProgressDialog *progress = new QProgressDialog("Moving folder to other disk...", QString(), 0, 0, this);
+            progress->setWindowModality(Qt::WindowModal);
+            progress->setCancelButton(nullptr);
+            progress->setMinimumDuration(0);
+            progress->show();
+
+            QFuture<bool> future = QtConcurrent::run([this, src, dst]()
+                                                     { return m_organizeService->moveFolder(src, dst); });
+            QFutureWatcher<bool> *watcher = new QFutureWatcher<bool>(this);
+            connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher, progress, row, vf, fi, dst]()
+                    {
+                progress->close();
+                bool ok = watcher->result();
+                watcher->deleteLater();
+                if (!ok)
+                {
+                    QMessageBox::warning(this, "Error", "Failed to move folder. Check permissions and available space.");
+                    return;
+                }
+
+                // Update model entry
+                Core::VideoFile updated = vf;
+                updated.filePath = QDir::toNativeSeparators(dst) + QDir::separator() + fi.fileName();
+                m_tableModel->updateFile(row, updated);
+
+                // Persist last folder
+                m_settings->setLastFolder(dst);
+
+                statusBar()->showMessage("Moved folder to other disk", 4000); });
+            watcher->setFuture(future);
         }
     }
 
@@ -569,10 +824,34 @@ namespace UI
         connect(dlg, &MovesToMoveDialog::moveRequested,
                 this, [this](const QString &from, const QString &to)
                 {
-                if (m_organizeService->moveFolder(from, to))
-                    statusBar()->showMessage("Move successful", 3000);
-                else
-                    QMessageBox::warning(this, "Error", "Failed to move folder."); });
+                QProgressDialog *progress = new QProgressDialog("Moving folder...", QString(), 0, 0, this);
+                progress->setWindowModality(Qt::WindowModal);
+                progress->setCancelButton(nullptr);
+                progress->setMinimumDuration(0);
+                progress->show();
+
+                QString srcNative = QDir::toNativeSeparators(from);
+                QString dstNative = QDir::toNativeSeparators(to);
+
+                QFuture<bool> future = QtConcurrent::run([this, srcNative, dstNative]() {
+                    return m_organizeService->moveFolder(srcNative, dstNative);
+                });
+                QFutureWatcher<bool> *watcher = new QFutureWatcher<bool>(this);
+                connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher, progress, dstNative]() {
+                    progress->close();
+                    bool ok = watcher->result();
+                    watcher->deleteLater();
+                    if (ok)
+                    {
+                        m_settings->setLastFolder(dstNative);
+                        statusBar()->showMessage("Move successful", 3000);
+                    }
+                    else
+                    {
+                        QMessageBox::warning(this, "Error", "Failed to move folder.");
+                    }
+                });
+                watcher->setFuture(future); });
 
         connect(dlg, &MovesToMoveDialog::moveAllWithTeraCopy,
                 this, [this](const QList<Core::MoveRequest> &movies)
@@ -680,6 +959,27 @@ namespace UI
             m_apiClient->setApiKey(m_settings->apiKey());
             applyColumnSettings();
         }
+    }
+
+    void MainWindow::onOpenLastFolderClicked()
+    {
+        QString lastFolder = m_settings->lastFolder();
+        if (lastFolder.isEmpty())
+        {
+            QMessageBox::information(this, "No Last Folder", "No last folder recorded.");
+            return;
+        }
+
+        QDir d(lastFolder);
+        if (!d.exists())
+        {
+            QMessageBox::warning(this, "Folder Not Found", "The last folder does not exist: " + lastFolder);
+            return;
+        }
+
+        // Load the last folder in-app
+        statusBar()->showMessage("Loading folder: " + lastFolder);
+        processPath(lastFolder, false);
     }
 
     // ========================================================================

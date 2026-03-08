@@ -25,7 +25,7 @@ namespace UI
     signals:
         void openFileClicked(const QString &filePath) const;
         void imdbClicked(const QString &title, const QString &year, const QString &imdbId) const;
-        void paheClicked(const QString &title, const QString &year) const;
+        void paheClicked(const QString &title, const QString &year, const QString &imdbId) const;
     };
 
 } // namespace UI

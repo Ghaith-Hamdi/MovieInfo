@@ -120,7 +120,7 @@ namespace UI
                 emit imdbClicked(title, yearStr, imdbId);
                 break;
             case 2:
-                emit paheClicked(title, yearStr);
+                emit paheClicked(title, yearStr, imdbId);
                 break;
             }
             return true;

@@ -35,6 +35,7 @@ public:
     QHBoxLayout *toolbarLayout;
     QComboBox *driveCombo;
     QLineEdit *yearEdit;
+        QPushButton *openLastBtn;
     QPushButton *loadBtn;
     QFrame *line1;
     QPushButton *toMoveBtn;
@@ -78,6 +79,12 @@ public:
         yearEdit->setMaximumWidth(80);
 
         toolbarLayout->addWidget(yearEdit);
+
+        openLastBtn = new QPushButton(centralwidget);
+        openLastBtn->setObjectName("openLastBtn");
+        openLastBtn->setMinimumWidth(80);
+
+        toolbarLayout->addWidget(openLastBtn);
 
         loadBtn = new QPushButton(centralwidget);
         loadBtn->setObjectName("loadBtn");
@@ -198,6 +205,10 @@ public:
         toMoveBtn->setToolTip(QCoreApplication::translate("MainWindow", "Show movies that need to be relocated", nullptr));
 #endif // QT_CONFIG(tooltip)
         clearBtn->setText(QCoreApplication::translate("MainWindow", "Clear", nullptr));
+#if QT_CONFIG(tooltip)
+        openLastBtn->setToolTip(QCoreApplication::translate("MainWindow", "Open last used folder", nullptr));
+#endif // QT_CONFIG(tooltip)
+        openLastBtn->setText(QCoreApplication::translate("MainWindow", "Open Last", nullptr));
 #if QT_CONFIG(tooltip)
         clearBtn->setToolTip(QCoreApplication::translate("MainWindow", "Clear all movies from table", nullptr));
 #endif // QT_CONFIG(tooltip)

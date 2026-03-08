@@ -5,7 +5,7 @@
 #include <QList>
 #include "core/VideoFile.h"
 #include "core/ColumnDef.h"
-
+#include <QRegularExpression>
 namespace Models
 {
 

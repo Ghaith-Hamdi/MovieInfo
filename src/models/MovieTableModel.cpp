@@ -2,7 +2,6 @@
 #include "core/QualityRules.h"
 #include <QColor>
 #include <QFont>
-
 namespace Models
 {
 
@@ -107,16 +106,27 @@ namespace Models
             if (col == Core::Column::ImdbRating && vf.metadata)
             {
                 double r = vf.metadata->imdbRating;
+                if (r >= 9.0)
+                    return QColor("#00695c"); // deep teal
+                if (r >= 8.0)
+                    return QColor("#2e7d32"); // strong green
                 if (r >= 7.0)
-                    return QColor("#4CAF50");
-                if (r >= 5.0)
-                    return QColor("#FFC107");
-                return QColor("#F44336");
+                    return QColor("#43a047"); // pleasant green
+                if (r >= 6.0)
+                    return QColor("#f9a825"); // amber
+                if (r >= 4.0)
+                    return QColor("#fb8c00"); // orange
+                return QColor("#c62828");     // red
             }
-            if (col == Core::Column::AspectRatio)
+
+            if (col == Core::Column::Quality)
             {
-                if (vf.isUltraWide())
-                    return QColor("#64B5F6");
+                if (!vf.qualityTier.isEmpty() && vf.qualityTier.contains("720"))
+                    return QColor("#039be5"); // 720p -> bright blue
+                if (!vf.qualityTier.isEmpty() && (vf.qualityTier.contains("1080") || vf.qualityTier.contains("1080p")))
+                    return QColor("#2e7d32"); // 1080p -> green
+                if (!vf.qualityTier.isEmpty() && (vf.qualityTier.contains("4K") || vf.qualityTier.contains("2160")))
+                    return QColor("#6a1b9a"); // 4K -> purple
             }
         }
 
@@ -182,9 +192,18 @@ namespace Models
             if (vf.folderTitle.compare(movie.title, Qt::CaseInsensitive) == 0 ||
                 (vf.folderYear == movie.year && !movie.title.isEmpty()))
             {
-                // More flexible: also try sanitized match
-                QString sanitizedFolder = vf.folderTitle.toLower().simplified();
-                QString sanitizedMovie = movie.title.toLower().simplified();
+                // More flexible: normalize both strings (remove punctuation) and compare
+                auto normalize = [](const QString &s)
+                {
+                    QString out = s.toLower();
+                    out.remove(QRegularExpression(R"([^
+        \p{L}\p{N}\s])"));
+                    out = out.simplified();
+                    return out;
+                };
+
+                QString sanitizedFolder = normalize(vf.folderTitle);
+                QString sanitizedMovie = normalize(movie.title);
                 if (sanitizedFolder == sanitizedMovie ||
                     vf.folderTitle.compare(movie.title, Qt::CaseInsensitive) == 0)
                 {

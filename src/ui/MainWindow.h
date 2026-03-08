@@ -6,6 +6,9 @@
 
 class Ui_MainWindow;
 
+class QProgressBar;
+class QLabel;
+
 #include <QDragEnterEvent>
 #include <QDropEvent>
 
@@ -51,6 +54,8 @@ namespace UI
         void onFetchByDriveYearClicked();
         void onFileProcessed(const Core::VideoFile &file);
         void onScanComplete(int total, int cached, int fresh);
+        void onScanStarted(int totalFiles);
+        void onScanProgress(int current, int total, const QString &currentFile);
 
         // Metadata
         void onMovieFetched(const Core::Movie &movie);
@@ -64,19 +69,21 @@ namespace UI
         // Actions
         void onOpenFile(const QString &filePath);
         void onImdbClicked(const QString &title, const QString &year, const QString &imdbId);
-        void onPaheClicked(const QString &title, const QString &year);
+        void onPaheClicked(const QString &title, const QString &year, const QString &imdbId);
 
         // Context menu
         void onContextMenu(const QPoint &pos);
         void onRefreshMovieData();
         void onOpenFolder();
         void onRenameFolder();
+        void onMoveToOtherDisk();
         void onOrganizeByAspectRatio();
 
         // Toolbar actions
         void onOrganizeAllClicked();
         void onShowMoviesToMoveClicked();
         void onClearTableClicked();
+        void onOpenLastFolderClicked();
         void onExportClicked();
         void onSettingsClicked();
 
@@ -114,6 +121,8 @@ namespace UI
         // Non-UI members
         ActionButtonDelegate *m_actionDelegate;
         QProgressDialog *m_progressDialog;
+        QProgressBar *m_scanProgressBar;
+        QLabel *m_currentFolderLabel;
 
         // State
         int m_contextMenuRow = -1;
