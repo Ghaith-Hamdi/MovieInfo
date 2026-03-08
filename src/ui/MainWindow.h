@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QProgressDialog>
+#include <functional>
 
 class Ui_MainWindow;
 
@@ -95,6 +96,9 @@ namespace UI
         void fetchMetadataForRow(int row);
         void updateFilterCombos();
         void applyColumnSettings();
+        void runFolderMoveAsync(const QString &src, const QString &dst,
+                                const QString &progressMsg,
+                                std::function<void(bool)> onDone);
 
         QString sanitizeForWindowsFolder(const QString &name);
 

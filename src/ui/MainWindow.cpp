@@ -88,8 +88,8 @@ namespace UI
         m_scanProgressBar->setTextVisible(true);
 
         m_currentFolderLabel = new QLabel(this);
-        m_currentFolderLabel->setText("");
         m_currentFolderLabel->setMinimumWidth(200);
+        m_currentFolderLabel->setMaximumWidth(500);
         m_currentFolderLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
 
         statusBar()->addPermanentWidget(m_scanProgressBar);
@@ -198,7 +198,6 @@ namespace UI
         if (path.isEmpty())
             return;
 
-        m_settings->setLastFolder(path);
         statusBar()->showMessage("Processing videos from: " + path);
         processPath(path, false);
     }
@@ -213,10 +212,8 @@ namespace UI
         m_fromApi = 0;
         m_fetchedFromImdbList.clear();
 
-        // Persist last-used folder so "Open Last" works across flows
         m_settings->setLastFolder(path);
-        if (m_currentFolderLabel)
-            m_currentFolderLabel->setText(path);
+        m_currentFolderLabel->setText(path);
         m_scanService->scanFolder(path, isSingleFile);
     }
 
@@ -234,30 +231,16 @@ namespace UI
 
     void MainWindow::onScanStarted(int totalFiles)
     {
-        if (m_scanProgressBar)
-        {
-            m_scanProgressBar->setRange(0, totalFiles);
-            m_scanProgressBar->setValue(0);
-            m_scanProgressBar->setVisible(true);
-        }
+        m_scanProgressBar->setRange(0, totalFiles);
+        m_scanProgressBar->setValue(0);
+        m_scanProgressBar->setVisible(true);
     }
 
     void MainWindow::onScanProgress(int current, int total, const QString &currentFile)
     {
         Q_UNUSED(total);
-        if (m_scanProgressBar)
-        {
-            // If range is zero-length, switch to busy indicator
-            if (m_scanProgressBar->maximum() <= 0)
-                m_scanProgressBar->setRange(0, 0);
-            else
-                m_scanProgressBar->setValue(current);
-        }
-
-        if (m_currentFolderLabel)
-        {
-            m_currentFolderLabel->setText(currentFile);
-        }
+        m_scanProgressBar->setValue(current);
+        m_currentFolderLabel->setText(currentFile);
     }
 
     void MainWindow::onScanComplete(int total, int cached, int fresh)
@@ -280,11 +263,8 @@ namespace UI
             dlg.exec(); });
         }
 
-        // Hide scan progress and set current folder label to lastFolder
-        if (m_scanProgressBar)
-            m_scanProgressBar->setVisible(false);
-        if (m_currentFolderLabel)
-            m_currentFolderLabel->setText(m_settings->lastFolder());
+        m_scanProgressBar->setVisible(false);
+        m_currentFolderLabel->setText(m_settings->lastFolder());
     }
 
     // ========================================================================
@@ -452,10 +432,7 @@ namespace UI
         // If the directory exists, open it
         if (dir.exists())
         {
-            QString p = dir.absolutePath();
-            m_settings->setLastFolder(p);
-            statusBar()->showMessage("Loading folder: " + p);
-            processPath(p, false);
+            QDesktopServices::openUrl(QUrl::fromLocalFile(dir.absolutePath()));
             return;
         }
 
@@ -473,12 +450,7 @@ namespace UI
                 if (entry.compare(searchName, Qt::CaseInsensitive) == 0 ||
                     entry.contains(vf.folderTitle, Qt::CaseInsensitive))
                 {
-                    {
-                        QString p = parent.filePath(entry);
-                        m_settings->setLastFolder(p);
-                        statusBar()->showMessage("Loading folder: " + p);
-                        processPath(p, false);
-                    }
+                    QDesktopServices::openUrl(QUrl::fromLocalFile(parent.filePath(entry)));
                     return;
                 }
             }
@@ -563,49 +535,26 @@ namespace UI
             return;
         }
 
-        // Run rename/move in background to avoid blocking UI
-        {
-            QString src = QDir::toNativeSeparators(currentPath);
-            QString dst = QDir::toNativeSeparators(newPath);
-            int row = m_contextMenuRow;
-
-            QProgressDialog *progress = new QProgressDialog("Renaming folder...", QString(), 0, 0, this);
-            progress->setWindowModality(Qt::WindowModal);
-            progress->setCancelButton(nullptr);
-            progress->setMinimumDuration(0);
-            progress->show();
-
-            QFuture<bool> future = QtConcurrent::run([this, src, dst]()
-                                                     { return m_organizeService->moveFolder(src, dst); });
-            QFutureWatcher<bool> *watcher = new QFutureWatcher<bool>(this);
-            connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher, progress, row, vf, fi, newTitle, newYear, dst]()
-                    {
-                progress->close();
-                bool ok = watcher->result();
-                watcher->deleteLater();
-                if (ok)
-                {
-                    // Update model
-                    Core::VideoFile updated = vf;
-                    updated.filePath = QDir::toNativeSeparators(dst) + QDir::separator() + fi.fileName();
-                    updated.folderTitle = newTitle;
-                    updated.folderYear = newYear.toInt();
-                    m_tableModel->updateFile(row, updated);
-
-                    // Re-fetch metadata
-                    m_omdbService->fetchMovie(newTitle, newYear.toInt());
-
-                    // Persist last folder
-                    m_settings->setLastFolder(dst);
-
-                    QMessageBox::information(nullptr, "Success", "Folder renamed successfully.");
-                }
-                else
-                {
-                    QMessageBox::warning(nullptr, "Error", "Failed to rename folder. Check permissions.");
-                } });
-            watcher->setFuture(future);
-        }
+        const QString src = QDir::toNativeSeparators(currentPath);
+        const QString dst = QDir::toNativeSeparators(newPath);
+        const int row = m_contextMenuRow;
+        runFolderMoveAsync(src, dst, "Renaming folder...", [this, row, vf, fi, newTitle, newYear, dst](bool ok)
+                           {
+            if (ok)
+            {
+                Core::VideoFile updated = vf;
+                updated.filePath = dst + QDir::separator() + fi.fileName();
+                updated.folderTitle = newTitle;
+                updated.folderYear = newYear.toInt();
+                m_tableModel->updateFile(row, updated);
+                m_omdbService->fetchMovie(newTitle, newYear.toInt());
+                m_settings->setLastFolder(dst);
+                QMessageBox::information(this, "Success", "Folder renamed successfully.");
+            }
+            else
+            {
+                QMessageBox::warning(this, "Error", "Failed to rename folder. Check permissions.");
+            } });
     }
 
     void MainWindow::onMoveToOtherDisk()
@@ -696,42 +645,21 @@ namespace UI
         if (confirm != QMessageBox::Yes)
             return;
 
-        // Run move in background to avoid blocking UI
-        {
-            QString src = QDir::toNativeSeparators(movieDir.absolutePath());
-            QString dst = QDir::toNativeSeparators(finalTarget);
-            int row = m_contextMenuRow;
-            QProgressDialog *progress = new QProgressDialog("Moving folder to other disk...", QString(), 0, 0, this);
-            progress->setWindowModality(Qt::WindowModal);
-            progress->setCancelButton(nullptr);
-            progress->setMinimumDuration(0);
-            progress->show();
-
-            QFuture<bool> future = QtConcurrent::run([this, src, dst]()
-                                                     { return m_organizeService->moveFolder(src, dst); });
-            QFutureWatcher<bool> *watcher = new QFutureWatcher<bool>(this);
-            connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher, progress, row, vf, fi, dst]()
-                    {
-                progress->close();
-                bool ok = watcher->result();
-                watcher->deleteLater();
-                if (!ok)
-                {
-                    QMessageBox::warning(this, "Error", "Failed to move folder. Check permissions and available space.");
-                    return;
-                }
-
-                // Update model entry
-                Core::VideoFile updated = vf;
-                updated.filePath = QDir::toNativeSeparators(dst) + QDir::separator() + fi.fileName();
-                m_tableModel->updateFile(row, updated);
-
-                // Persist last folder
-                m_settings->setLastFolder(dst);
-
-                statusBar()->showMessage("Moved folder to other disk", 4000); });
-            watcher->setFuture(future);
-        }
+        const QString src = QDir::toNativeSeparators(movieDir.absolutePath());
+        const QString dst = QDir::toNativeSeparators(finalTarget);
+        const int row = m_contextMenuRow;
+        runFolderMoveAsync(src, dst, "Moving folder to other disk...", [this, row, vf, fi, dst](bool ok)
+                           {
+            if (!ok)
+            {
+                QMessageBox::warning(this, "Error", "Failed to move folder. Check permissions and available space.");
+                return;
+            }
+            Core::VideoFile updated = vf;
+            updated.filePath = dst + QDir::separator() + fi.fileName();
+            m_tableModel->updateFile(row, updated);
+            m_settings->setLastFolder(dst);
+            statusBar()->showMessage("Moved folder to other disk", 4000); });
     }
 
     void MainWindow::onOrganizeByAspectRatio()
@@ -824,34 +752,20 @@ namespace UI
         connect(dlg, &MovesToMoveDialog::moveRequested,
                 this, [this](const QString &from, const QString &to)
                 {
-                QProgressDialog *progress = new QProgressDialog("Moving folder...", QString(), 0, 0, this);
-                progress->setWindowModality(Qt::WindowModal);
-                progress->setCancelButton(nullptr);
-                progress->setMinimumDuration(0);
-                progress->show();
-
-                QString srcNative = QDir::toNativeSeparators(from);
-                QString dstNative = QDir::toNativeSeparators(to);
-
-                QFuture<bool> future = QtConcurrent::run([this, srcNative, dstNative]() {
-                    return m_organizeService->moveFolder(srcNative, dstNative);
-                });
-                QFutureWatcher<bool> *watcher = new QFutureWatcher<bool>(this);
-                connect(watcher, &QFutureWatcher<bool>::finished, this, [this, watcher, progress, dstNative]() {
-                    progress->close();
-                    bool ok = watcher->result();
-                    watcher->deleteLater();
-                    if (ok)
-                    {
-                        m_settings->setLastFolder(dstNative);
-                        statusBar()->showMessage("Move successful", 3000);
-                    }
-                    else
-                    {
-                        QMessageBox::warning(this, "Error", "Failed to move folder.");
-                    }
-                });
-                watcher->setFuture(future); });
+                    const QString dst = QDir::toNativeSeparators(to);
+                    runFolderMoveAsync(
+                        QDir::toNativeSeparators(from), dst, "Moving folder...",
+                        [this, dst](bool ok) {
+                            if (ok)
+                            {
+                                m_settings->setLastFolder(dst);
+                                statusBar()->showMessage("Move successful", 3000);
+                            }
+                            else
+                            {
+                                QMessageBox::warning(this, "Error", "Failed to move folder.");
+                            }
+                        }); });
 
         connect(dlg, &MovesToMoveDialog::moveAllWithTeraCopy,
                 this, [this](const QList<Core::MoveRequest> &movies)
@@ -959,6 +873,29 @@ namespace UI
             m_apiClient->setApiKey(m_settings->apiKey());
             applyColumnSettings();
         }
+    }
+
+    void MainWindow::runFolderMoveAsync(const QString &src, const QString &dst,
+                                        const QString &progressMsg,
+                                        std::function<void(bool)> onDone)
+    {
+        auto *progress = new QProgressDialog(progressMsg, QString(), 0, 0, this);
+        progress->setWindowModality(Qt::WindowModal);
+        progress->setCancelButton(nullptr);
+        progress->setMinimumDuration(0);
+        progress->show();
+
+        auto *watcher = new QFutureWatcher<bool>(this);
+        connect(watcher, &QFutureWatcher<bool>::finished, this,
+                [watcher, progress, onDone = std::move(onDone)]() mutable
+                {
+                    progress->deleteLater();
+                    const bool ok = watcher->result();
+                    watcher->deleteLater();
+                    onDone(ok);
+                });
+        watcher->setFuture(QtConcurrent::run([this, src, dst]
+                                             { return m_organizeService->moveFolder(src, dst); }));
     }
 
     void MainWindow::onOpenLastFolderClicked()
