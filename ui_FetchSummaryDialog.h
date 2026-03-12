@@ -82,7 +82,9 @@ public:
     {
         FetchSummaryDialog->setWindowTitle(QCoreApplication::translate("FetchSummaryDialog", "Fetch Summary", nullptr));
         titleLabel->setText(QCoreApplication::translate("FetchSummaryDialog", "Movies Fetched from IMDb", nullptr));
+        titleLabel->setStyleSheet(QCoreApplication::translate("FetchSummaryDialog", "font-size: 15px; font-weight: 600; color: #e6edf3; padding-bottom: 2px;", nullptr));
         statsLabel->setText(QCoreApplication::translate("FetchSummaryDialog", "Total: 0 | From Database: 0 | From IMDb: 0", nullptr));
+        statsLabel->setStyleSheet(QCoreApplication::translate("FetchSummaryDialog", "color: #8b949e; font-size: 12px;", nullptr));
         closeBtn->setText(QCoreApplication::translate("FetchSummaryDialog", "Close", nullptr));
     } // retranslateUi
 

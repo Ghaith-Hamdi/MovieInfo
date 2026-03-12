@@ -15,6 +15,21 @@ QWidget {
     color: #e6edf3;
 }
 
+/* === SEPARATORS === */
+QFrame[frameShape="5"] {
+    background-color: #30363d;
+    border: none;
+    max-width: 1px;
+    min-width: 1px;
+}
+
+QFrame[frameShape="4"] {
+    background-color: #21262d;
+    border: none;
+    max-height: 1px;
+    min-height: 1px;
+}
+
 /* === TOOLBAR === */
 QToolBar {
     background-color: #161b22;
@@ -35,9 +50,9 @@ QToolBar::separator {
 /* === TABLE === */
 QTableView, QTableWidget {
     background-color: #0d1117;
-    border: 1px solid #30363d;
+    border: 1px solid #21262d;
     border-radius: 8px;
-    gridline-color: #21262d;
+    gridline-color: #1c2128;
     selection-background-color: #1f6feb;
     alternate-background-color: #161b22;
     color: #e6edf3;
@@ -45,10 +60,10 @@ QTableView, QTableWidget {
 }
 
 QTableView::item, QTableWidget::item {
-    padding: 6px 8px;
+    padding: 8px 8px;
     border: none;
-    border-bottom: 1px solid #21262d;
-    min-height: 26px;
+    border-bottom: 1px solid #1c2128;
+    min-height: 30px;
 }
 
 QTableView::item:selected, QTableWidget::item:selected {
@@ -64,12 +79,12 @@ QTableView::item:hover:!selected, QTableWidget::item:hover:!selected {
 QHeaderView::section {
     background-color: #161b22;
     color: #8b949e;
-    padding: 10px 8px;
+    padding: 10px 10px;
     font-weight: 600;
     font-size: 11px;
     border: none;
-    border-bottom: 1px solid #30363d;
-    border-right: 1px solid #21262d;
+    border-bottom: 2px solid #21262d;
+    border-right: 1px solid #1c2128;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
@@ -92,7 +107,7 @@ QPushButton {
     border-radius: 6px;
     font-weight: 500;
     font-size: 12px;
-    min-height: 26px;
+    min-height: 28px;
 }
 
 QPushButton:hover {
@@ -111,69 +126,75 @@ QPushButton:disabled {
     border-color: #21262d;
 }
 
-/* Primary action buttons - neutral style */
-#selectFolderButton {
+/* Load button - PRIMARY ACTION */
+#loadBtn {
+    background-color: #1f6feb;
+    color: #ffffff;
+    border: 1px solid #388bfd;
+    font-weight: 600;
+}
+
+#loadBtn:hover {
+    background-color: #388bfd;
+    border-color: #58a6ff;
+    color: #ffffff;
+}
+
+#loadBtn:pressed {
+    background-color: #0c2d6b;
+    border-color: #1f6feb;
+}
+
+/* To Move button - amber accent */
+#toMoveBtn {
     background-color: #21262d;
-    color: #c9d1d9;
+    color: #d29922;
     border: 1px solid #30363d;
 }
 
-#selectFolderButton:hover {
-    background-color: #30363d;
-    border-color: #484f58;
-    color: #e6edf3;
+#toMoveBtn:hover {
+    background-color: #2d2208;
+    color: #e3b341;
+    border-color: #d29922;
 }
 
-#selectFolderButton:pressed {
-    background-color: #161b22;
+#toMoveBtn:pressed {
+    background-color: #1a1400;
 }
 
-/* Export button - neutral */
-#exportButton {
-    background-color: #21262d;
-    color: #c9d1d9;
-    border: 1px solid #30363d;
-}
-
-#exportButton:hover {
-    background-color: #30363d;
-    border-color: #484f58;
-    color: #e6edf3;
-}
-
-#exportButton:pressed {
-    background-color: #161b22;
-}
-
-/* Clear/Reset button */
-#clearFiltersButton {
-    background-color: transparent;
-    color: #8b949e;
-    border: 1px solid #30363d;
-    padding: 8px 12px;
-}
-
-#clearFiltersButton:hover {
-    background-color: #21262d;
-    color: #e6edf3;
-    border-color: #484f58;
-}
-
-/* Clear table button (danger) */
-#clearTableButton {
+/* Clear table button - DANGER */
+#clearBtn {
     background-color: #21262d;
     color: #f85149;
     border: 1px solid #30363d;
 }
 
-#clearTableButton:hover {
+#clearBtn:hover {
     background-color: #da3633;
     color: #ffffff;
     border-color: #f85149;
 }
 
-#clearTableButton:pressed {
+#clearBtn:pressed {
     background-color: #b62324;
+    border-color: #da3633;
+}
+
+/* Organize All - green accent */
+#organizeAllBtn {
+    background-color: #21262d;
+    color: #3fb950;
+    border: 1px solid #30363d;
+}
+
+#organizeAllBtn:hover {
+    background-color: #122d17;
+    color: #56d364;
+    border-color: #3fb950;
+}
+
+#organizeAllBtn:pressed {
+    background-color: #091c0e;
 }
 
 /* === LINE EDIT (SEARCH) === */
@@ -270,26 +291,28 @@ QLabel {
 
 /* Muted labels used as secondary info */
 #countLabel, QStatusBar QLabel {
-    color: #6e7681;
+    color: #8b949e;
     font-size: 12px;
     padding: 0 8px;
 }
 
-/* Header section labels */
-QHeaderView::section {
-    /* inherits from the QHeaderView rule above */
+/* Filter panel labels */
+#decadeLabel, #aspectRatioLabel, #qualityLabel {
+    color: #8b949e;
+    font-size: 12px;
+    font-weight: 500;
 }
 
 /* === SCROLL BARS === */
 QScrollBar:vertical {
     background: transparent;
-    width: 10px;
+    width: 8px;
     margin: 0;
 }
 
 QScrollBar::handle:vertical {
     background: #30363d;
-    border-radius: 5px;
+    border-radius: 4px;
     min-height: 30px;
 }
 
@@ -308,13 +331,13 @@ QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
 
 QScrollBar:horizontal {
     background: transparent;
-    height: 10px;
+    height: 8px;
     margin: 0;
 }
 
 QScrollBar::handle:horizontal {
     background: #30363d;
-    border-radius: 5px;
+    border-radius: 4px;
     min-width: 30px;
 }
 
@@ -333,11 +356,12 @@ QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
 
 /* === STATUS BAR === */
 QStatusBar {
-    background-color: #0d1117;
+    background-color: #161b22;
     border-top: 1px solid #21262d;
-    color: #6e7681;
+    color: #8b949e;
     font-size: 12px;
-    padding: 4px 12px;
+    padding: 3px 12px;
+    min-height: 28px;
 }
 
 QStatusBar::item {
@@ -345,7 +369,8 @@ QStatusBar::item {
 }
 
 QStatusBar QLabel {
-    color: #6e7681;
+    color: #8b949e;
+    font-size: 12px;
 }
 
 /* === TOOLTIPS === */
@@ -482,10 +507,10 @@ QMessageBox QPushButton {
 /* === GROUP BOX === */
 QGroupBox {
     background-color: #0d1117;
-    border: 1px solid #30363d;
-    border-radius: 6px;
-    margin-top: 16px;
-    padding: 12px 8px 8px 8px;
+    border: 1px solid #21262d;
+    border-radius: 8px;
+    margin-top: 18px;
+    padding: 14px 10px 10px 10px;
     font-size: 12px;
     color: #c9d1d9;
 }
@@ -493,14 +518,16 @@ QGroupBox {
 QGroupBox::title {
     subcontrol-origin: margin;
     subcontrol-position: top left;
-    left: 10px;
-    top: -8px;
-    padding: 2px 6px;
-    background-color: #161b22;
-    color: #e6edf3;
+    left: 12px;
+    top: -9px;
+    padding: 2px 8px;
+    background-color: #0d1117;
+    color: #8b949e;
     font-weight: 600;
-    font-size: 12px;
-    border: 1px solid #30363d;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border: 1px solid #21262d;
     border-radius: 4px;
 }
 

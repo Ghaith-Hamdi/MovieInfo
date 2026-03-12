@@ -39,12 +39,12 @@ public:
             FilterPanel->setObjectName("FilterPanel");
         FilterPanel->resize(800, 40);
         horizontalLayout = new QHBoxLayout(FilterPanel);
-        horizontalLayout->setSpacing(8);
+        horizontalLayout->setSpacing(12);
         horizontalLayout->setObjectName("horizontalLayout");
-        horizontalLayout->setContentsMargins(0, 4, 0, 4);
+        horizontalLayout->setContentsMargins(0, 6, 0, 6);
         searchEdit = new QLineEdit(FilterPanel);
         searchEdit->setObjectName("searchEdit");
-        searchEdit->setMinimumWidth(200);
+        searchEdit->setMinimumWidth(250);
         searchEdit->setClearButtonEnabled(true);
 
         horizontalLayout->addWidget(searchEdit);

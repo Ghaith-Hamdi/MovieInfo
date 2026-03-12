@@ -27,6 +27,10 @@
 #include <QFuture>
 #include <QFutureWatcher>
 #include <QtConcurrent/QtConcurrent>
+#ifdef Q_OS_WIN
+#  include <windows.h>
+#  include <shellapi.h>
+#endif
 namespace UI
 {
 
@@ -564,102 +568,90 @@ namespace UI
 
         const auto &vf = m_tableModel->fileAt(m_contextMenuRow);
         QFileInfo fi(vf.filePath);
-        QDir movieDir = fi.dir();
+        const QString moviePath = QDir::cleanPath(fi.dir().absolutePath());
+        const QString normalized = QDir::fromNativeSeparators(moviePath); // always '/' separators
 
-        QString abs = QDir::cleanPath(movieDir.absolutePath());
-        QString native = QDir::fromNativeSeparators(abs); // use '/' separators
-        if (native.size() < 2)
+        if (normalized.size() < 3 || normalized[1] != ':')
         {
             QMessageBox::warning(this, "Error", "Invalid movie folder path.");
             return;
         }
 
-        QString drive = native.mid(0, 2); // e.g. "E:"
-        QString otherDrive;
-        if (drive.compare("D:", Qt::CaseInsensitive) == 0)
-            otherDrive = "E:";
-        else if (drive.compare("E:", Qt::CaseInsensitive) == 0)
-            otherDrive = "D:";
+        const QString srcDrive = normalized.left(2).toUpper();
+        QString dstDrive;
+        if      (srcDrive == "D:") dstDrive = "E:";
+        else if (srcDrive == "E:") dstDrive = "D:";
         else
         {
-            QMessageBox::warning(this, "Unsupported Drive", "Move to other disk only supports D: <-> E: drives.");
+            QMessageBox::warning(this, "Unsupported Drive",
+                "Move to other disk only supports D: <-> E: drives.");
             return;
         }
 
-        // Split path into parts after drive
-        QString rest = native.mid(2);
-        if (rest.startsWith('/'))
-            rest = rest.mid(1);
-        QStringList parts = rest.split('/', Qt::SkipEmptyParts);
-        if (parts.isEmpty())
+        // "E:/Movies/2023/Title (2023)" -> mid(3) -> "Movies/2023/Title (2023)"
+        const QStringList allParts = normalized.mid(3).split('/', Qt::SkipEmptyParts);
+        if (allParts.isEmpty())
         {
             QMessageBox::warning(this, "Error", "Cannot determine folder hierarchy.");
             return;
         }
 
-        QString movieFolderName = parts.takeLast(); // last segment is the movie folder
-        // parts now contains the parent path segments
+        const QString     movieFolder = allParts.last();
+        const QStringList parentParts = allParts.mid(0, allParts.size() - 1);
 
-        QString chosenTargetBase;
-        // Try same depth down to shallowest parent
-        for (int k = 0; k <= parts.size(); ++k)
+        // Walk from deepest mirror path up to the drive root until we find an existing directory
+        QString targetParent;
+        for (int depth = parentParts.size(); depth >= 0; --depth)
         {
-            int endIndex = parts.size() - k; // number of segments to keep
-            QStringList candidateParts = parts.mid(0, endIndex);
-            QString candidatePath;
-            if (candidateParts.isEmpty())
+            const QString candidate = (depth == 0)
+                ? dstDrive + "/"
+                : dstDrive + "/" + QStringList(parentParts.mid(0, depth)).join('/');
+            if (QDir(candidate).exists())
             {
-                // otherDrive is like "E:", append separator -> "E:\"
-                candidatePath = otherDrive + QDir::separator();
-            }
-            else
-            {
-                // Build path like "E:\parent\sub"
-                QString joined = candidateParts.join(QDir::separator());
-                candidatePath = otherDrive + QDir::separator() + joined;
-            }
-
-            QDir candDir(candidatePath);
-            if (candDir.exists())
-            {
-                chosenTargetBase = candDir.absolutePath();
+                targetParent = QDir::toNativeSeparators(QDir::cleanPath(candidate));
                 break;
             }
         }
 
-        if (chosenTargetBase.isEmpty())
+        if (targetParent.isEmpty())
         {
-            QMessageBox::warning(this, "No Target", "No suitable parent folder found on other drive.");
+            QMessageBox::warning(this, "No Target",
+                "No suitable parent folder found on " + dstDrive + ".");
             return;
         }
 
-        QString finalTarget = QDir::cleanPath(chosenTargetBase + QDir::separator() + movieFolderName);
+        const QString src = QDir::toNativeSeparators(moviePath);
+        const QString dst = QDir::cleanPath(targetParent + QDir::separator() + movieFolder);
 
-        // Confirm with the user before moving
-        QMessageBox::StandardButton confirm = QMessageBox::question(
-            this,
-            "Confirm Move",
-            QString("Move folder:\n%1\n\nTo:\n%2\n\nProceed?").arg(movieDir.absolutePath(), finalTarget),
-            QMessageBox::Yes | QMessageBox::No,
-            QMessageBox::No);
-        if (confirm != QMessageBox::Yes)
+        if (QMessageBox::question(this, "Confirm Move",
+                QString("Move folder:\n  %1\n\nTo:\n  %2\n\nProceed?").arg(src, dst),
+                QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes)
             return;
 
-        const QString src = QDir::toNativeSeparators(movieDir.absolutePath());
-        const QString dst = QDir::toNativeSeparators(finalTarget);
-        const int row = m_contextMenuRow;
-        runFolderMoveAsync(src, dst, "Moving folder to other disk...", [this, row, vf, fi, dst](bool ok)
-                           {
-            if (!ok)
-            {
-                QMessageBox::warning(this, "Error", "Failed to move folder. Check permissions and available space.");
-                return;
-            }
-            Core::VideoFile updated = vf;
-            updated.filePath = dst + QDir::separator() + fi.fileName();
-            m_tableModel->updateFile(row, updated);
-            m_settings->setLastFolder(dst);
-            statusBar()->showMessage("Moved folder to other disk", 4000); });
+        // Delegate to the Windows Shell so Explorer provides the progress UI and undo support.
+        // pFrom / pTo must be double-null-terminated; appending QChar(0) before toStdWString()
+        // gives "...path\0" and the std::wstring null-terminator adds the second '\0'.
+        const std::wstring wSrc = (src + QChar(0)).toStdWString();
+        const std::wstring wDst = (targetParent + QDir::separator() + QChar(0)).toStdWString();
+
+        SHFILEOPSTRUCTW op{};
+        op.hwnd   = reinterpret_cast<HWND>(winId());
+        op.wFunc  = FO_MOVE;
+        op.pFrom  = wSrc.c_str();
+        op.pTo    = wDst.c_str();
+        op.fFlags = FOF_ALLOWUNDO | FOF_NOCONFIRMMKDIR;
+
+        if (SHFileOperationW(&op) != 0 || op.fAnyOperationsAborted)
+        {
+            statusBar()->showMessage("Move cancelled or failed", 3000);
+            return;
+        }
+
+        Core::VideoFile updated = vf;
+        updated.filePath = dst + QDir::separator() + fi.fileName();
+        m_tableModel->updateFile(m_contextMenuRow, updated);
+        m_settings->setLastFolder(dst);
+        statusBar()->showMessage("Moved folder to other disk", 4000);
     }
 
     void MainWindow::onOrganizeByAspectRatio()

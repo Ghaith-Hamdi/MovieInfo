@@ -33,10 +33,16 @@
     <item>
      <layout class="QHBoxLayout" name="toolbarLayout">
       <property name="spacing">
-       <number>4</number>
+       <number>8</number>
       </property>
       <item>
        <widget class="QComboBox" name="driveCombo">
+        <property name="maximumWidth">
+         <number>90</number>
+        </property>
+        <property name="minimumWidth">
+         <number>65</number>
+        </property>
         <property name="toolTip">
          <string>Select drive</string>
         </property>
@@ -44,6 +50,12 @@
       </item>
       <item>
        <widget class="QLineEdit" name="yearEdit">
+        <property name="maximumWidth">
+         <number>75</number>
+        </property>
+        <property name="minimumWidth">
+         <number>55</number>
+        </property>
         <property name="toolTip">
          <string>Enter year (e.g., 2023)</string>
         </property>
@@ -161,7 +173,7 @@
     <item>
      <layout class="QHBoxLayout" name="bottomLayout">
       <property name="spacing">
-       <number>4</number>
+       <number>8</number>
       </property>
       <item>
        <widget class="QPushButton" name="addFolderBtn">

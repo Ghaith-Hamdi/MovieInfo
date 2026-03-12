@@ -34,6 +34,9 @@
      <property name="text">
       <string>Movies Fetched from IMDb</string>
      </property>
+     <property name="styleSheet">
+      <string>font-size: 15px; font-weight: 600; color: #e6edf3; padding-bottom: 2px;</string>
+     </property>
     </widget>
    </item>
    <item>
@@ -47,6 +50,9 @@
     <widget class="QLabel" name="statsLabel">
      <property name="text">
       <string>Total: 0 | From Database: 0 | From IMDb: 0</string>
+     </property>
+     <property name="styleSheet">
+      <string>color: #8b949e; font-size: 12px;</string>
      </property>
     </widget>
    </item>
