@@ -87,6 +87,7 @@ namespace UI
         void onOpenLastFolderClicked();
         void onExportClicked();
         void onSettingsClicked();
+        void onImportWatchlistClicked();
 
     private:
         void setupConnections();

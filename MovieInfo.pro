@@ -24,7 +24,8 @@ SOURCES += \
     src/ui/dialogs/SettingsDialog.cpp \
     src/ui/dialogs/MovesToMoveDialog.cpp \
     src/ui/dialogs/RenameFolderDialog.cpp \
-    src/ui/dialogs/FetchSummaryDialog.cpp
+    src/ui/dialogs/FetchSummaryDialog.cpp \
+    src/ui/dialogs/WatchlistDialog.cpp
 
 HEADERS += \
     src/core/Movie.h \
@@ -50,7 +51,8 @@ HEADERS += \
     src/ui/dialogs/SettingsDialog.h \
     src/ui/dialogs/MovesToMoveDialog.h \
     src/ui/dialogs/RenameFolderDialog.h \
-    src/ui/dialogs/FetchSummaryDialog.h
+    src/ui/dialogs/FetchSummaryDialog.h \
+    src/ui/dialogs/WatchlistDialog.h
 
 RESOURCES += resources.qrc
 
@@ -60,7 +62,8 @@ FORMS += \
     src/ui/dialogs/SettingsDialog.ui \
     src/ui/dialogs/RenameFolderDialog.ui \
     src/ui/dialogs/MovesToMoveDialog.ui \
-    src/ui/dialogs/FetchSummaryDialog.ui
+    src/ui/dialogs/FetchSummaryDialog.ui \
+    src/ui/dialogs/WatchlistDialog.ui
 
 # Deployment rules
 unix:!android {

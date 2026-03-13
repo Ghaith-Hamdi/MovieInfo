@@ -4,6 +4,7 @@
 #include "ui/dialogs/MovesToMoveDialog.h"
 #include "ui/dialogs/RenameFolderDialog.h"
 #include "ui/dialogs/FetchSummaryDialog.h"
+#include "ui/dialogs/WatchlistDialog.h"
 
 #include <QApplication>
 #include <QDragEnterEvent>
@@ -28,8 +29,8 @@
 #include <QFutureWatcher>
 #include <QtConcurrent/QtConcurrent>
 #ifdef Q_OS_WIN
-#  include <windows.h>
-#  include <shellapi.h>
+#include <windows.h>
+#include <shellapi.h>
 #endif
 namespace UI
 {
@@ -167,6 +168,7 @@ namespace UI
         connect(ui->addFolderBtn, &QPushButton::clicked, this, &MainWindow::onSelectFolderClicked);
         connect(ui->exportBtn, &QPushButton::clicked, this, &MainWindow::onExportClicked);
         connect(ui->organizeAllBtn, &QPushButton::clicked, this, &MainWindow::onOrganizeAllClicked);
+        connect(ui->importWatchlistBtn, &QPushButton::clicked, this, &MainWindow::onImportWatchlistClicked);
         connect(ui->settingsBtn, &QPushButton::clicked, this, &MainWindow::onSettingsClicked);
     }
 
@@ -579,12 +581,14 @@ namespace UI
 
         const QString srcDrive = normalized.left(2).toUpper();
         QString dstDrive;
-        if      (srcDrive == "D:") dstDrive = "E:";
-        else if (srcDrive == "E:") dstDrive = "D:";
+        if (srcDrive == "D:")
+            dstDrive = "E:";
+        else if (srcDrive == "E:")
+            dstDrive = "D:";
         else
         {
             QMessageBox::warning(this, "Unsupported Drive",
-                "Move to other disk only supports D: <-> E: drives.");
+                                 "Move to other disk only supports D: <-> E: drives.");
             return;
         }
 
@@ -596,7 +600,7 @@ namespace UI
             return;
         }
 
-        const QString     movieFolder = allParts.last();
+        const QString movieFolder = allParts.last();
         const QStringList parentParts = allParts.mid(0, allParts.size() - 1);
 
         // Walk from deepest mirror path up to the drive root until we find an existing directory
@@ -604,8 +608,8 @@ namespace UI
         for (int depth = parentParts.size(); depth >= 0; --depth)
         {
             const QString candidate = (depth == 0)
-                ? dstDrive + "/"
-                : dstDrive + "/" + QStringList(parentParts.mid(0, depth)).join('/');
+                                          ? dstDrive + "/"
+                                          : dstDrive + "/" + QStringList(parentParts.mid(0, depth)).join('/');
             if (QDir(candidate).exists())
             {
                 targetParent = QDir::toNativeSeparators(QDir::cleanPath(candidate));
@@ -616,7 +620,7 @@ namespace UI
         if (targetParent.isEmpty())
         {
             QMessageBox::warning(this, "No Target",
-                "No suitable parent folder found on " + dstDrive + ".");
+                                 "No suitable parent folder found on " + dstDrive + ".");
             return;
         }
 
@@ -624,8 +628,8 @@ namespace UI
         const QString dst = QDir::cleanPath(targetParent + QDir::separator() + movieFolder);
 
         if (QMessageBox::question(this, "Confirm Move",
-                QString("Move folder:\n  %1\n\nTo:\n  %2\n\nProceed?").arg(src, dst),
-                QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes)
+                                  QString("Move folder:\n  %1\n\nTo:\n  %2\n\nProceed?").arg(src, dst),
+                                  QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes)
             return;
 
         // Delegate to the Windows Shell so Explorer provides the progress UI and undo support.
@@ -635,10 +639,10 @@ namespace UI
         const std::wstring wDst = (targetParent + QDir::separator() + QChar(0)).toStdWString();
 
         SHFILEOPSTRUCTW op{};
-        op.hwnd   = reinterpret_cast<HWND>(winId());
-        op.wFunc  = FO_MOVE;
-        op.pFrom  = wSrc.c_str();
-        op.pTo    = wDst.c_str();
+        op.hwnd = reinterpret_cast<HWND>(winId());
+        op.wFunc = FO_MOVE;
+        op.pFrom = wSrc.c_str();
+        op.pTo = wDst.c_str();
         op.fFlags = FOF_ALLOWUNDO | FOF_NOCONFIRMMKDIR;
 
         if (SHFileOperationW(&op) != 0 || op.fAnyOperationsAborted)
@@ -865,6 +869,17 @@ namespace UI
             m_apiClient->setApiKey(m_settings->apiKey());
             applyColumnSettings();
         }
+    }
+
+    void MainWindow::onImportWatchlistClicked()
+    {
+        auto *dlg = new WatchlistDialog(
+            m_tableModel->allFiles(),
+            m_settings->apiKey(),
+            m_movieRepo,
+            this);
+        dlg->setAttribute(Qt::WA_DeleteOnClose);
+        dlg->show();
     }
 
     void MainWindow::runFolderMoveAsync(const QString &src, const QString &dst,

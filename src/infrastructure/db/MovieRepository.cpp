@@ -156,6 +156,21 @@ namespace Infrastructure
         return m_cache.contains(cacheKey(title, year));
     }
 
+    // Find any cached movie whose title (sanitized) matches - year unknown.
+    Core::Movie MovieRepository::findByTitle(const QString &title)
+    {
+        if (!m_cacheLoaded)
+            preloadCache();
+
+        const QString prefix = sanitize(title) + "|";
+        for (auto it = m_sanitizedIndex.constBegin(); it != m_sanitizedIndex.constEnd(); ++it)
+        {
+            if (it.key().startsWith(prefix))
+                return m_cache.value(it.value(), Core::Movie());
+        }
+        return Core::Movie();
+    }
+
     Core::Movie MovieRepository::rowToMovie(QSqlQuery &query)
     {
         Core::Movie movie;

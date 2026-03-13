@@ -604,3 +604,66 @@ QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover,
 QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {
     background-color: #484f58;
 }
+
+/* === WATCHLIST DIALOG ACTION BUTTONS === */
+
+/* IMDb — classic yellow-gold */
+#imdbBtn {
+    background-color: #f5c518;
+    color: #000000;
+    border: none;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 2px 6px;
+    min-width: 46px;
+}
+
+#imdbBtn:hover {
+    background-color: #ffd740;
+    color: #000000;
+}
+
+#imdbBtn:pressed {
+    background-color: #c9a300;
+}
+
+/* Pahe — deep red */
+#paheBtn {
+    background-color: #c0392b;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 2px 6px;
+    min-width: 46px;
+}
+
+#paheBtn:hover {
+    background-color: #e74c3c;
+    color: #ffffff;
+}
+
+#paheBtn:pressed {
+    background-color: #96281b;
+}
+
+/* Import Text File button in Watchlist dialog — blue accent */
+#importBtn {
+    background-color: #1f6feb;
+    color: #ffffff;
+    border: 1px solid #388bfd;
+    font-weight: 600;
+}
+
+#importBtn:hover {
+    background-color: #388bfd;
+    border-color: #58a6ff;
+    color: #ffffff;
+}
+
+#importBtn:pressed {
+    background-color: #0c2d6b;
+    border-color: #1f6feb;
+}

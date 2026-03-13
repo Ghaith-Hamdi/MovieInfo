@@ -206,6 +206,16 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="importWatchlistBtn">
+        <property name="toolTip">
+         <string>Import a text file with movie names and compare against the scanned folder</string>
+        </property>
+        <property name="text">
+         <string>Import Watchlist</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="settingsBtn">
         <property name="text">
          <string>Settings</string>

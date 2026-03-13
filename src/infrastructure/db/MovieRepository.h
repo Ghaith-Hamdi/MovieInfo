@@ -22,6 +22,7 @@ namespace Infrastructure
         Core::Movie get(const QString &title, const QString &year);
         Core::Movie getBySanitizedTitle(const QString &sanitizedTitle, const QString &year);
         bool exists(const QString &title, const QString &year);
+        Core::Movie findByTitle(const QString &title);
 
         int cachedCount() const { return m_cache.size(); }
 
