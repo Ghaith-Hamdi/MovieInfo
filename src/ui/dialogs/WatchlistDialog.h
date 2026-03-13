@@ -42,8 +42,8 @@ namespace UI
     private:
         struct WatchlistEntry
         {
-            int listIndex = 0;       // 1-based position in the input file
-            QString inputTitle;      // raw title from the text file
+            int listIndex = 0;  // 1-based position in the input file
+            QString inputTitle; // raw title from the text file
             bool haveIt = false;
             Core::VideoFile videoFile; // valid when haveIt == true
         };

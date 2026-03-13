@@ -119,10 +119,7 @@ namespace UI
         const QString &apiKey,
         Infrastructure::MovieRepository *movieRepo,
         QWidget *parent)
-        : QDialog(parent)
-        , ui(new Ui::WatchlistDialog)
-        , m_scannedFiles(scannedFiles)
-        , m_movieRepo(movieRepo)
+        : QDialog(parent), ui(new Ui::WatchlistDialog), m_scannedFiles(scannedFiles), m_movieRepo(movieRepo)
     {
         ui->setupUi(this);
 
@@ -135,12 +132,12 @@ namespace UI
         // Have table (cols 0-10 : # Title Year Rating Votes Genre Director AR Quality IMDb Pahe)
         auto *haveHdr = ui->haveTable->horizontalHeader();
         haveHdr->setSectionResizeMode(QHeaderView::ResizeToContents);
-        haveHdr->setSectionResizeMode(1, QHeaderView::Stretch);   // Title
-        haveHdr->setSectionResizeMode(9,  QHeaderView::Fixed);    // IMDb
-        haveHdr->setSectionResizeMode(10, QHeaderView::Fixed);    // Pahe
+        haveHdr->setSectionResizeMode(1, QHeaderView::Stretch); // Title
+        haveHdr->setSectionResizeMode(9, QHeaderView::Fixed);   // IMDb
+        haveHdr->setSectionResizeMode(10, QHeaderView::Fixed);  // Pahe
         haveHdr->setStretchLastSection(false);
         haveHdr->setHighlightSections(false);
-        ui->haveTable->setColumnWidth(9,  62);
+        ui->haveTable->setColumnWidth(9, 62);
         ui->haveTable->setColumnWidth(10, 62);
         ui->haveTable->verticalHeader()->setVisible(false);
         ui->haveTable->setMouseTracking(true);
@@ -148,9 +145,9 @@ namespace UI
         // Missing table (cols 0-8 : # Title Year Rating Votes Genre Director IMDb Pahe)
         auto *missHdr = ui->missingTable->horizontalHeader();
         missHdr->setSectionResizeMode(QHeaderView::ResizeToContents);
-        missHdr->setSectionResizeMode(1, QHeaderView::Stretch);   // Title
-        missHdr->setSectionResizeMode(7, QHeaderView::Fixed);     // IMDb
-        missHdr->setSectionResizeMode(8, QHeaderView::Fixed);     // Pahe
+        missHdr->setSectionResizeMode(1, QHeaderView::Stretch); // Title
+        missHdr->setSectionResizeMode(7, QHeaderView::Fixed);   // IMDb
+        missHdr->setSectionResizeMode(8, QHeaderView::Fixed);   // Pahe
         missHdr->setStretchLastSection(false);
         missHdr->setHighlightSections(false);
         ui->missingTable->setColumnWidth(7, 62);
@@ -226,13 +223,13 @@ namespace UI
 
             ++listIndex;
             WatchlistEntry entry;
-            entry.listIndex  = listIndex;
+            entry.listIndex = listIndex;
             entry.inputTitle = line;
 
             const auto it = normIndex.constFind(normalizeTitle(line));
             if (it != normIndex.constEnd())
             {
-                entry.haveIt    = true;
+                entry.haveIt = true;
                 entry.videoFile = m_scannedFiles[it.value()];
                 m_haveEntries.append(entry);
             }
@@ -250,9 +247,9 @@ namespace UI
         populateMissingTable();
 
         ui->tabWidget->setTabText(0,
-            QString("Have (%1)").arg(m_haveEntries.size()));
+                                  QString("Have (%1)").arg(m_haveEntries.size()));
         ui->tabWidget->setTabText(1,
-            QString("Don't Have (%1)").arg(m_missingEntries.size()));
+                                  QString("Don't Have (%1)").arg(m_missingEntries.size()));
 
         ui->summaryLabel->setText(
             QString("Total: %1  |  Have: %2  |  Missing: %3")
@@ -283,13 +280,19 @@ namespace UI
 
     static QColor ratingColor(double r)
     {
-        if (r <= 0.0) return {};
-        if (r >= 9.0) return {255, 215,   0};   // gold
-        if (r >= 8.0) return {  0, 200, 180};   // teal
-        if (r >= 7.0) return { 80, 200,  80};   // green
-        if (r >= 6.0) return {220, 190,  60};   // yellow
-        if (r >= 4.0) return {220, 120,  40};   // orange
-        return {220, 60, 60};                    // red
+        if (r <= 0.0)
+            return {};
+        if (r >= 9.0)
+            return {255, 215, 0}; // gold
+        if (r >= 8.0)
+            return {0, 200, 180}; // teal
+        if (r >= 7.0)
+            return {80, 200, 80}; // green
+        if (r >= 6.0)
+            return {220, 190, 60}; // yellow
+        if (r >= 4.0)
+            return {220, 120, 40}; // orange
+        return {220, 60, 60};      // red
     }
 
     void WatchlistDialog::populateHaveTable()
@@ -299,24 +302,32 @@ namespace UI
 
         for (int i = 0; i < m_haveEntries.size(); ++i)
         {
-            const WatchlistEntry &e   = m_haveEntries[i];
+            const WatchlistEntry &e = m_haveEntries[i];
             const Core::VideoFile &vf = e.videoFile;
 
-            QString yearStr   = vf.folderYear > 0 ? QString::number(vf.folderYear) : QStringLiteral("—");
+            QString yearStr = vf.folderYear > 0 ? QString::number(vf.folderYear) : QStringLiteral("—");
             QString ratingStr = QStringLiteral("—");
-            QString votesStr  = QStringLiteral("—");
+            QString votesStr = QStringLiteral("—");
             QString genre, director, imdbId;
-            double  rating = 0.0;
-            int     votes  = 0;
+            double rating = 0.0;
+            int votes = 0;
 
             if (vf.metadata.has_value())
             {
                 const Core::Movie &m = *vf.metadata;
-                if (m.imdbRating > 0.0) { ratingStr = m.formattedRating(); rating = m.imdbRating; }
-                if (m.imdbVotes  > 0)   { votesStr  = m.formattedVotes();  votes  = m.imdbVotes; }
-                genre    = m.genre;
+                if (m.imdbRating > 0.0)
+                {
+                    ratingStr = m.formattedRating();
+                    rating = m.imdbRating;
+                }
+                if (m.imdbVotes > 0)
+                {
+                    votesStr = m.formattedVotes();
+                    votes = m.imdbVotes;
+                }
+                genre = m.genre;
                 director = m.director;
-                imdbId   = m.imdbId;
+                imdbId = m.imdbId;
             }
 
             tbl->setItem(i, 0, new NumericItem(e.listIndex, QString::number(e.listIndex)));
@@ -325,7 +336,8 @@ namespace UI
 
             auto *ratingItem = new NumericItem(rating, ratingStr);
             const QColor rc = ratingColor(rating);
-            if (rc.isValid()) ratingItem->setForeground(rc);
+            if (rc.isValid())
+                ratingItem->setForeground(rc);
             tbl->setItem(i, 3, ratingItem);
 
             tbl->setItem(i, 4, new NumericItem(votes, votesStr));
@@ -384,7 +396,7 @@ namespace UI
 
             FetchTask task;
             task.missingTableRow = i;
-            task.inputTitle      = m_missingEntries[i].inputTitle;
+            task.inputTitle = m_missingEntries[i].inputTitle;
             m_fetchQueue.append(task);
         }
 
