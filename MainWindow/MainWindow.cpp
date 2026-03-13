@@ -1693,13 +1693,19 @@ void MainWindow::onMovieExistsInDatabase(const QString &title, const Movie &exis
 
 void MainWindow::loadExternalStylesheet()
 {
-    QFile styleFile("styles.qss");
-    if (styleFile.open(QFile::ReadOnly | QFile::Text))
+    // Prefer embedded resource, fall back to app dir or working dir
+    const QStringList candidates = {":/styles.qss", QCoreApplication::applicationDirPath() + "/styles.qss", "styles.qss"};
+    for (const QString &path : candidates)
     {
-        QTextStream styleStream(&styleFile);
-        QString style = styleStream.readAll();
-        styleFile.close();
-        this->setStyleSheet(style);
+        QFile styleFile(path);
+        if (styleFile.open(QFile::ReadOnly | QFile::Text))
+        {
+            QTextStream styleStream(&styleFile);
+            QString style = styleStream.readAll();
+            styleFile.close();
+            this->setStyleSheet(style);
+            return;
+        }
     }
 }
 

@@ -174,10 +174,16 @@ namespace UI
 
     void MainWindow::loadStylesheet()
     {
-        QFile styleFile("styles.qss");
-        if (styleFile.open(QFile::ReadOnly | QFile::Text))
+        // Try resource first (compiled into .qrc), then application directory, then working directory
+        const QStringList candidates = {":/styles.qss", QCoreApplication::applicationDirPath() + "/styles.qss", "styles.qss"};
+        for (const QString &path : candidates)
         {
-            setStyleSheet(QTextStream(&styleFile).readAll());
+            QFile styleFile(path);
+            if (styleFile.open(QFile::ReadOnly | QFile::Text))
+            {
+                setStyleSheet(QTextStream(&styleFile).readAll());
+                return;
+            }
         }
     }
 
